@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans antialiased;
+  }
+  .dark body {
+    @apply bg-ink-950 text-ink-100;
+  }
+  ::selection {
+    @apply bg-brand-500/30;
+  }
+}
+
+@layer components {
+  .container-px {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .glass {
+    @apply bg-white/70 dark:bg-ink-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 disabled:opacity-60 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-card hover:bg-brand-700 hover:-translate-y-0.5 hover:shadow-glow;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-brand-700 border border-brand-200 hover:bg-brand-50 hover:-translate-y-0.5 dark:bg-ink-800 dark:text-brand-300 dark:border-ink-700 dark:hover:bg-ink-700;
+  }
+  .btn-ghost {
+    @apply btn text-ink-700 hover:bg-ink-100 dark:text-ink-200 dark:hover:bg-ink-800;
+  }
+  .card {
+    @apply rounded-2xl bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 shadow-soft;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-4 py-2.5 text-sm text-ink-800 dark:text-ink-100 placeholder-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 outline-none transition;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-600 dark:text-ink-300;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+  .section-title {
+    @apply font-display text-3xl sm:text-4xl font-bold text-ink-900 dark:text-white;
+  }
+  .section-sub {
+    @apply mt-3 text-ink-500 dark:text-ink-400 max-w-2xl;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-ink-300 dark:bg-ink-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-400;
+}
+
+/* Ticker */
+.ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker 30s linear infinite;
+}
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
