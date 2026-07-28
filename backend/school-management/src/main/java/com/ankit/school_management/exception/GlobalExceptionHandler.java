@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,10 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // ==========================================
     // Student Exception
+    // ==========================================
+
     @ExceptionHandler(StudentNotFoundException.class)
     public ResponseEntity<String> handleStudentNotFound(
             StudentNotFoundException ex) {
@@ -22,7 +26,10 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    // ==========================================
     // Teacher Exception
+    // ==========================================
+
     @ExceptionHandler(TeacherNotFoundException.class)
     public ResponseEntity<String> handleTeacherNotFound(
             TeacherNotFoundException ex) {
@@ -32,7 +39,23 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    // ==========================================
+    // Department Exception
+    // ==========================================
+
+    @ExceptionHandler(DepartmentNotFoundException.class)
+    public ResponseEntity<String> handleDepartmentNotFound(
+            DepartmentNotFoundException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ex.getMessage());
+    }
+
+    // ==========================================
     // Course Exception
+    // ==========================================
+
     @ExceptionHandler(CourseNotFoundException.class)
     public ResponseEntity<String> handleCourseNotFound(
             CourseNotFoundException ex) {
@@ -42,7 +65,10 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    // ==========================================
     // Attendance Exception
+    // ==========================================
+
     @ExceptionHandler(AttendanceNotFoundException.class)
     public ResponseEntity<String> handleAttendanceNotFound(
             AttendanceNotFoundException ex) {
@@ -52,13 +78,15 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    // ==========================================
     // Validation Exception
+    // ==========================================
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(
+    public ResponseEntity<Map<String, String>> handleValidationException(
             MethodArgumentNotValidException ex) {
 
-        Map<String, String> errors =
-                new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
 
         ex.getBindingResult()
                 .getFieldErrors()
@@ -68,17 +96,37 @@ public class GlobalExceptionHandler {
                                 error.getDefaultMessage()
                         ));
 
-        return errors;
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errors);
     }
 
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateResource(DuplicateResourceException ex) {
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return error(HttpStatus.CONFLICT, "The request conflicts with existing data");
+    }
+
+    // ==========================================
     // Generic Exception
+    // ==========================================
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGeneralException(
+    public ResponseEntity<Map<String, Object>> handleGeneralException(
             Exception ex) {
 
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Something went wrong: "
-                        + ex.getMessage());
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+
+    private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("status", status.value());
+        error.put("error", status.getReasonPhrase());
+        error.put("message", message);
+        return ResponseEntity.status(status).body(error);
     }
 }

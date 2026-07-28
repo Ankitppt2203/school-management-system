@@ -3,132 +3,234 @@ package com.ankit.school_management.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
+@Table(
+        name = "students",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_student_admission_number", columnNames = "admission_number")
+        }
+)
 public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name cannot be empty")
-    private String name;
+    // ===============================
+    // Student Identity
+    // ===============================
 
-    @Min(
-            value = 1,
-            message = "Age must be greater than 0")
-    private int age;
+    @NotBlank(message = "Admission number is required")
+    @Column(name = "admission_number", nullable = false, unique = true)
+    private String admissionNumber;
+
+    @Column(name = "roll_number", unique = true)
+    private String rollNumber;
+
+    @NotBlank(message = "First name is required")
+    @Column(name = "first_name", nullable = false)
+    private String firstName;
+
+    @Column(name = "middle_name")
+    private String middleName;
+
+    @NotBlank(message = "Last name is required")
+    @Column(name = "last_name", nullable = false)
+    private String lastName;
+
+    // ===============================
+    // Personal Information
+    // ===============================
+
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    // ===============================
+    // Academic Information
+    // ===============================
+
+    @NotBlank(message = "Academic session is required")
+    @Column(name = "academic_session", nullable = false)
+    private String academicSession;
+
+    @Column(name = "admission_date", nullable = false)
+    private LocalDate admissionDate;
+
+    @Column(name = "student_status")
+    private String status = "ACTIVE";
+
+    // ===============================
+    // Relationships
+    // ===============================
 
     @JsonBackReference("department-student")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
+
+    @JsonManagedReference("student-course")
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "student_course",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private List<Course> courses;
 
     @JsonManagedReference("student-attendance")
     @OneToMany(
             mappedBy = "student",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
-    private List<Attendance> attendanceRecords;
-
-    @JsonManagedReference("student-course")
-    @ManyToMany(
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "student_course",
-            joinColumns =
-            @JoinColumn(name = "student_id"),
-            inverseJoinColumns =
-            @JoinColumn(name = "course_id")
+            fetch = FetchType.LAZY
     )
-    private List<Course> courses;
+    private List<Attendance> attendanceRecords;
 
     @JsonManagedReference("student-result")
     @OneToMany(
             mappedBy = "student",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
+            fetch = FetchType.LAZY
+    )
     private List<Result> results;
+
+    // ===============================
+    // Constructors
+    // ===============================
 
     public Student() {
     }
 
-    public Student(
-            String name,
-            int age,
-            Department department,
-            List<Attendance> attendanceRecords,
-            List<Course> courses,
-            List<Result> results) {
-
-        this.name = name;
-        this.age = age;
-        this.department = department;
-        this.attendanceRecords = attendanceRecords;
-        this.courses = courses;
-        this.results = results;
-    }
+    // ===============================
+    // Getters and Setters
+    // ===============================
 
     public Long getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getAdmissionNumber() {
+        return admissionNumber;
     }
 
-    public void setName(
-            String name) {
-        this.name = name;
+    public void setAdmissionNumber(String admissionNumber) {
+        this.admissionNumber = admissionNumber;
     }
 
-    public int getAge() {
-        return age;
+    public String getRollNumber() {
+        return rollNumber;
     }
 
-    public void setAge(
-            int age) {
-        this.age = age;
+    public void setRollNumber(String rollNumber) {
+        this.rollNumber = rollNumber;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getMiddleName() {
+        return middleName;
+    }
+
+    public void setMiddleName(String middleName) {
+        this.middleName = middleName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getAcademicSession() {
+        return academicSession;
+    }
+
+    public void setAcademicSession(String academicSession) {
+        this.academicSession = academicSession;
+    }
+
+    public LocalDate getAdmissionDate() {
+        return admissionDate;
+    }
+
+    public void setAdmissionDate(LocalDate admissionDate) {
+        this.admissionDate = admissionDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Department getDepartment() {
         return department;
     }
 
-    public void setDepartment(
-            Department department) {
+    public void setDepartment(Department department) {
         this.department = department;
-    }
-
-    public List<Attendance> getAttendanceRecords() {
-        return attendanceRecords;
-    }
-
-    public void setAttendanceRecords(
-            List<Attendance> attendanceRecords) {
-        this.attendanceRecords = attendanceRecords;
     }
 
     public List<Course> getCourses() {
         return courses;
     }
 
-    public void setCourses(
-            List<Course> courses) {
+    public void setCourses(List<Course> courses) {
         this.courses = courses;
+    }
+
+    public List<Attendance> getAttendanceRecords() {
+        return attendanceRecords;
+    }
+
+    public void setAttendanceRecords(List<Attendance> attendanceRecords) {
+        this.attendanceRecords = attendanceRecords;
     }
 
     public List<Result> getResults() {
         return results;
     }
 
-    public void setResults(
-            List<Result> results) {
+    public void setResults(List<Result> results) {
         this.results = results;
+    }
+
+    public String getFullName() {
+        return String.join(" ", firstName, middleName == null ? "" : middleName.trim(), lastName)
+                .trim()
+                .replaceAll("\\s+", " ");
     }
 }

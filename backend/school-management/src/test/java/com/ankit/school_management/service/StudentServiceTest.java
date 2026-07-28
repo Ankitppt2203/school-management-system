@@ -1,231 +1,106 @@
 package com.ankit.school_management.service;
 
-import com.ankit.school_management.DTO.StudentDTO;
+import com.ankit.school_management.dto.student.StudentRequestDTO;
+import com.ankit.school_management.dto.student.StudentResponseDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.entity.Student;
+import com.ankit.school_management.exception.DuplicateResourceException;
 import com.ankit.school_management.exception.StudentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import com.ankit.school_management.repository.StudentRepository;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.mockito.ArgumentCaptor;
-
 @ExtendWith(MockitoExtension.class)
 class StudentServiceTest {
-
-    @Mock
-    private StudentRepository studentRepository;
-
-    @Mock
-    private DepartmentRepository departmentRepository;
-
-    @InjectMocks
-    private StudentService studentService;
-
-    // =====================================
-    // Test Save Student
-    // =====================================
+    @Mock private StudentRepository studentRepository;
+    @Mock private DepartmentRepository departmentRepository;
+    @InjectMocks private StudentService studentService;
 
     @Test
-    void testSaveStudent() {
+    void savesStudentUsingRedesignedRequestAndReturnsFullName() {
+        Department department = department(1L, "Computer Science");
+        StudentRequestDTO request = request("ADM-001", "R-1", 1L);
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(studentRepository.existsByAdmissionNumber("ADM-001")).thenReturn(false);
+        when(studentRepository.existsByRollNumber("R-1")).thenReturn(false);
+        when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        StudentDTO dto =
-                new StudentDTO(
-                        "Ankit",
-                        23,
-                        1L);
+        StudentResponseDTO response = studentService.saveStudent(request);
 
-        Department department =
-                new Department();
-
-        department.setId(1L);
-        department.setName(
-                "Computer Science");
-
-        Student student =
-                new Student();
-
-        student.setName(
-                "Ankit");
-
-        student.setAge(23);
-
-        student.setDepartment(
-                department);
-
-        when(
-                departmentRepository.findById(1L))
-                .thenReturn(Optional.of(department));
-
-        when(
-                studentRepository.save(any(Student.class)))
-                .thenReturn(student);
-
-        StudentDTO savedStudent =
-                studentService.saveStudent(dto);
-
-        assertEquals(
-                "Ankit",
-                savedStudent.getName());
-
-        assertEquals(
-                23,
-                savedStudent.getAge());
-
-        // Capture Student object
-        ArgumentCaptor<Student> studentCaptor =
-                ArgumentCaptor.forClass(Student.class);
-
-        verify(studentRepository, times(1))
-                .save(studentCaptor.capture());
-
-        verify(departmentRepository, times(1))
-                .findById(1L);
-
-        // Get captured object
-        Student capturedStudent =
-                studentCaptor.getValue();
-
-        // Verify captured object
-        assertEquals(
-                "Ankit",
-                capturedStudent.getName());
-
-        assertEquals(
-                23,
-                capturedStudent.getAge());
-
-        assertEquals(
-                1L,
-                capturedStudent.getDepartment().getId());
-    }
-    // =====================================
-    // Test Student Not Found
-    // =====================================
-
-    @Test
-    void testGetStudentByIdNotFound() {
-
-        when(
-                studentRepository.findById(100L))
-                .thenReturn(Optional.empty());
-
-        StudentNotFoundException exception =
-                assertThrows(
-                        StudentNotFoundException.class,
-                        () -> studentService.getStudentById(100L));
-
-        assertEquals(
-                "Student with id 100 not found",
-                exception.getMessage());
-
-        verify(studentRepository, times(1))
-                .findById(100L);
+        assertEquals("Ankit Kumar", response.getFullName());
+        assertEquals("Computer Science", response.getDepartmentName());
+        ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(studentCaptor.capture());
+        assertEquals("Ankit", studentCaptor.getValue().getFirstName());
+        assertEquals("Kumar", studentCaptor.getValue().getLastName());
     }
 
     @Test
-    void testGetStudentByIdSuccess() {
+    void rejectsDuplicateAdmissionNumber() {
+        StudentRequestDTO request = request("ADM-001", "R-1", 1L);
+        when(studentRepository.existsByAdmissionNumber("ADM-001")).thenReturn(true);
 
+        assertThrows(DuplicateResourceException.class, () -> studentService.saveStudent(request));
+    }
+
+    @Test
+    void throwsWhenStudentIsMissing() {
+        when(studentRepository.findById(100L)).thenReturn(Optional.empty());
+
+        StudentNotFoundException exception = assertThrows(StudentNotFoundException.class,
+                () -> studentService.getStudentById(100L));
+
+        assertEquals("Student with id 100 not found", exception.getMessage());
+    }
+
+    @Test
+    void updatesExistingStudent() {
+        Department oldDepartment = department(1L, "Computer Science");
+        Department newDepartment = department(2L, "Mechanical Engineering");
         Student student = new Student();
+        student.setAdmissionNumber("ADM-001");
+        student.setRollNumber("R-1");
+        student.setFirstName("Ankit");
+        student.setLastName("Kumar");
+        student.setAcademicSession("2025-26");
+        student.setAdmissionDate(LocalDate.of(2025, 4, 1));
+        student.setDepartment(oldDepartment);
+        StudentRequestDTO request = request("ADM-002", "R-2", 2L);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
+        when(studentRepository.existsByAdmissionNumber("ADM-002")).thenReturn(false);
+        when(studentRepository.existsByRollNumber("R-2")).thenReturn(false);
+        when(studentRepository.save(student)).thenReturn(student);
 
-        student.setName("Ankit");
-        student.setAge(23);
+        StudentResponseDTO response = studentService.updateStudent(1L, request);
 
-        when(studentRepository.findById(1L))
-                .thenReturn(Optional.of(student));
-
-        Student foundStudent =
-                studentService.getStudentById(1L);
-
-        assertEquals(
-                "Ankit",
-                foundStudent.getName());
-
-        assertEquals(
-                23,
-                foundStudent.getAge());
-
-        verify(studentRepository, times(1))
-                .findById(1L);
+        assertEquals("ADM-002", response.getAdmissionNumber());
+        assertEquals(2L, response.getDepartmentId());
     }
 
-    @Test
-    void testUpdateStudent() {
+    private StudentRequestDTO request(String admissionNumber, String rollNumber, Long departmentId) {
+        return new StudentRequestDTO(admissionNumber, rollNumber, "Ankit", null, "Kumar", "MALE",
+                LocalDate.of(2002, 1, 1), "2025-26", LocalDate.of(2025, 4, 1), "ACTIVE", departmentId);
+    }
 
-        // New data coming from client
-        StudentDTO dto =
-                new StudentDTO(
-                        "Ankit Kumar",
-                        24,
-                        2L);
-
-        // Existing student in database
-        Student student =
-                new Student();
-
-        student.setName("Ankit");
-        student.setAge(23);
-
-        // New Department
-        Department department =
-                new Department();
-
-        department.setId(2L);
-        department.setName("Mechanical Engineering");
-
-        // Mock repository calls
-        when(studentRepository.findById(1L))
-                .thenReturn(Optional.of(student));
-
-        when(departmentRepository.findById(2L))
-                .thenReturn(Optional.of(department));
-
-        when(studentRepository.save(any(Student.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Call Service
-        StudentDTO updatedStudent =
-                studentService.updateStudent(
-                        1L,
-                        dto);
-
-        // Verify updated values
-        assertEquals(
-                "Ankit Kumar",
-                updatedStudent.getName());
-
-        assertEquals(
-                24,
-                updatedStudent.getAge());
-
-        assertEquals(
-                2L,
-                updatedStudent.getDepartmentId());
-
-        // Verify repository methods
-        verify(studentRepository, times(1))
-                .findById(1L);
-
-        verify(departmentRepository, times(1))
-                .findById(2L);
-
-        verify(studentRepository, times(1))
-                .save(any(Student.class));
+    private Department department(Long id, String name) {
+        Department department = new Department();
+        department.setId(id);
+        department.setName(name);
+        return department;
     }
 }

@@ -1,27 +1,50 @@
 package com.ankit.school_management.repository;
 
 import com.ankit.school_management.entity.Student;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import java.util.Optional;
 
-public interface StudentRepository
-        extends JpaRepository<Student, Long> {
+public interface StudentRepository extends JpaRepository<Student, Long> {
 
-    List<Student> findByName(String name);
+    // ===============================
+    // Unique Checks
+    // ===============================
 
-    List<Student> findByAgeGreaterThan(int age);
+    boolean existsByAdmissionNumber(String admissionNumber);
 
-    List<Student> findByNameContaining(String name);
+    boolean existsByRollNumber(String rollNumber);
 
-    List<Student> findByNameAndAge(
-            String name,
-            int age);
+    Optional<Student> findByAdmissionNumber(String admissionNumber);
 
-    @Query(
-            "SELECT s FROM Student s WHERE s.age > :age")
-    List<Student> getStudentsOlderThan(
-            @Param("age") int age);
+    // ===============================
+    // Search
+    // ===============================
+
+    Page<Student> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+            String firstName,
+            String lastName,
+            Pageable pageable
+    );
+
+    // ===============================
+    // Filters
+    // ===============================
+
+    Page<Student> findByAcademicSession(
+            String academicSession,
+            Pageable pageable
+    );
+
+    Page<Student> findByStatus(
+            String status,
+            Pageable pageable
+    );
+
+    Page<Student> findByDepartmentId(
+            Long departmentId,
+            Pageable pageable
+    );
 }

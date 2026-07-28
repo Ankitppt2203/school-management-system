@@ -78,4 +78,56 @@ public class User {
             Role role) {
         this.role = role;
     }
+
+    @Column(nullable = false)
+private boolean enabled = true;
+
+@Column(nullable = false)
+private boolean accountLocked = false;
+
+@Column(nullable = false)
+private int failedLoginAttempts = 0;
+
+@Column(nullable = false)
+private boolean firstLogin = true;
+
+// Getter for enabled
+public boolean isEnabled() {
+    return enabled;
+}
+
+// Setter for enabled
+public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+}
+
+// Getter for accountLocked
+public boolean isAccountLocked() {
+    return accountLocked;
+}
+
+// Setter for accountLocked
+public void setAccountLocked(boolean accountLocked) {
+    this.accountLocked = accountLocked;
+}
+
+// Getter for failedLoginAttempts
+public int getFailedLoginAttempts() {
+    return failedLoginAttempts;
+}
+
+// Setter for failedLoginAttempts
+public void setFailedLoginAttempts(int failedLoginAttempts) {
+    this.failedLoginAttempts = failedLoginAttempts;
+}
+
+// Getter for firstLogin
+public boolean isFirstLogin() {
+    return firstLogin;
+}
+
+// Setter for firstLogin
+public void setFirstLogin(boolean firstLogin) {
+    this.firstLogin = firstLogin;
+}
 }

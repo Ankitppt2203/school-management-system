@@ -1,6 +1,6 @@
 package com.ankit.school_management.service;
 
-import com.ankit.school_management.DTO.DepartmentDTO;
+import com.ankit.school_management.dto.DepartmentDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.exception.DepartmentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;

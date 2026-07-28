@@ -1,7 +1,7 @@
 package com.ankit.school_management.service;
 
-import com.ankit.school_management.DTO.ReportCardDTO;
-import com.ankit.school_management.DTO.ResultDTO;
+import com.ankit.school_management.dto.ReportCardDTO;
+import com.ankit.school_management.dto.ResultDTO;
 import com.ankit.school_management.entity.Exam;
 import com.ankit.school_management.entity.Result;
 import com.ankit.school_management.entity.Student;
@@ -12,11 +12,12 @@ import com.ankit.school_management.repository.ExamRepository;
 import com.ankit.school_management.repository.ResultRepository;
 import com.ankit.school_management.repository.StudentRepository;
 import org.springframework.stereotype.Service;
-import com.ankit.school_management.exception.ResultNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ResultService {
 
     private final ResultRepository resultRepository;
@@ -34,6 +35,7 @@ public class ResultService {
     }
 
     // Create Result
+    @Transactional
     public Result saveResult(
             ResultDTO resultDTO) {
 
@@ -82,6 +84,7 @@ public class ResultService {
     }
 
     // Delete Result
+    @Transactional
     public void deleteResult(
             Long id) {
 
@@ -141,27 +144,23 @@ public class ResultService {
     }
 
     // Generate Report Card
-    public ReportCardDTO getReportCard(
-            Long studentId) {
+   public ReportCardDTO getReportCard(Long studentId) {
 
-        Student student =
-                studentRepository.findById(studentId)
-                        .orElseThrow(() ->
-                                new StudentNotFoundException(
-                                        "Student not found"));
+    Student student = studentRepository.findById(studentId)
+            .orElseThrow(() ->
+                    new StudentNotFoundException("Student not found"));
 
-        List<Result> results =
-                resultRepository.findByStudentId(studentId);
+    List<Result> results =
+            resultRepository.findByStudentId(studentId);
 
-        double percentage =
-                calculatePercentage(studentId);
+    double percentage =
+            calculatePercentage(studentId);
 
-        return new ReportCardDTO(
-                student.getName(),
-                percentage,
-                results);
-    }
-
+    return new ReportCardDTO(
+            student.getFullName(),
+            percentage,
+            results);
+}
     // Grade Calculation
     private String calculateGrade(
             int marks) {

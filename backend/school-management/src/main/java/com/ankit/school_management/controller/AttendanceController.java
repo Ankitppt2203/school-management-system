@@ -1,6 +1,6 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.AttendanceDTO;
+import com.ankit.school_management.dto.AttendanceDTO;
 import com.ankit.school_management.entity.Attendance;
 import com.ankit.school_management.entity.AttendanceStatus;
 import com.ankit.school_management.service.AttendanceService;

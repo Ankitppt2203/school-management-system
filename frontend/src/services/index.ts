@@ -29,17 +29,17 @@ function crud<T extends { id: string }>(endpoint: string) {
 
 export const studentApi = {
   listPage: async (page: number, size: number): Promise<StudentPageResponse> => {
-    const response = await api.get('/students/page', {
-      params: { page, size },
-    });
+  const response = await api.get('/students', {
+    params: { page, size },
+  });
 
-    const data = response.data as StudentPageResponse;
+  const data = response.data as StudentPageResponse;
 
-    return {
-      ...data,
-      content: data.content.map(mapStudentRecord),
-    };
-  },
+  return {
+    ...data,
+    content: data.content.map(mapStudentRecord),
+  };
+},
 
   listAll: async (): Promise<StudentRow[]> => {
     const response = await api.get('/students');
@@ -80,14 +80,34 @@ export const studentApi = {
 };
 
 function mapStudentRecord(student: StudentRecord): StudentRow {
-  const departmentId = student.department?.id ?? 0;
-
   return {
-    id: student.id.toString(),
-    name: student.name,
-    age: student.age,
-    departmentId: departmentId ? departmentId.toString() : '',
-    departmentName: student.department?.name ?? 'Unassigned',
+    id: student.id,
+
+    admissionNumber: student.admissionNumber,
+
+    rollNumber: student.rollNumber,
+
+    fullName: student.fullName,
+
+    firstName: student.firstName,
+
+    middleName: student.middleName ?? "",
+
+    lastName: student.lastName,
+
+    gender: student.gender,
+
+    dateOfBirth: student.dateOfBirth,
+
+    academicSession: student.academicSession,
+
+    admissionDate: student.admissionDate,
+
+    status: student.status,
+
+    departmentId: student.departmentId,
+
+    departmentName: student.departmentName,
   };
 }
 
@@ -279,14 +299,63 @@ export interface LoginResponseData {
   token: string;
   expiresIn: number;
   tokenType: string;
+  firstLogin: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface StudentRecord {
+
+    id: number;
+
+    admissionNumber: string;
+
+    rollNumber: string;
+
+    fullName: string;
+
+    firstName: string;
+
+    middleName?: string;
+
+    lastName: string;
+
+    gender: string;
+
+    dateOfBirth: string;
+
+    departmentId: number;
+
+    departmentName: string;
+
+    academicSession: string;
+
+    admissionDate: string;
+
+    status: string;
 }
 
 export const authApi = {
-  login: (username: string, password: string): Promise<LoginResponseData> =>
-    api
-      .post<LoginResponseData>('/auth/login', {
+  login: async (
+    username: string,
+    password: string
+  ): Promise<LoginResponseData> => {
+
+    const response = await api.post<LoginResponseData>(
+      "/auth/login",
+      {
         username,
         password,
-      })
-      .then((r) => r.data),
+      }
+    );
+
+    // Save JWT
+    localStorage.setItem("token", response.data.token);
+
+    return response.data;
+  },
 };

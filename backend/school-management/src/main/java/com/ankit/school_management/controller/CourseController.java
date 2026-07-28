@@ -1,6 +1,6 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.CourseDTO;
+import com.ankit.school_management.dto.CourseDTO;
 import com.ankit.school_management.entity.Course;
 import com.ankit.school_management.entity.Student;
 import com.ankit.school_management.service.CourseService;

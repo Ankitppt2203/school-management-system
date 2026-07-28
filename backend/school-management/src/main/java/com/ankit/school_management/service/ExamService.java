@@ -1,6 +1,6 @@
 package com.ankit.school_management.service;
 
-import com.ankit.school_management.DTO.ExamDTO;
+import com.ankit.school_management.dto.ExamDTO;
 import com.ankit.school_management.entity.Exam;
 import com.ankit.school_management.exception.ExamNotFoundException;
 import com.ankit.school_management.repository.ExamRepository;

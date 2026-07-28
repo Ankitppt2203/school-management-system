@@ -1,6 +1,6 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.TeacherDTO;
+import com.ankit.school_management.dto.TeacherDTO;
 import com.ankit.school_management.entity.Teacher;
 import com.ankit.school_management.service.TeacherService;
 import jakarta.validation.Valid;

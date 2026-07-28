@@ -2,10 +2,15 @@ package com.ankit.school_management.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -13,48 +18,70 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
-        private final JwtFilter jwtFilter;
+    private final JwtFilter jwtFilter;
+    private final CustomUserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
 
-        public SecurityConfig(JwtFilter jwtFilter) {
-                this.jwtFilter = jwtFilter;
-        }
+    public SecurityConfig(
+            JwtFilter jwtFilter,
+            CustomUserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(
-                        HttpSecurity http) throws Exception {
+        this.jwtFilter = jwtFilter;
+        this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-                http
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
 
-                                // ✅ Enable CORS
-                                .cors(Customizer.withDefaults())
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
 
-                                // Disable CSRF
-                                .csrf(csrf -> csrf.disable())
+        return provider;
+    }
 
-                                .cors(Customizer.withDefaults())
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
 
-                                // Stateless Session
-                                .sessionManagement(session -> session.sessionCreationPolicy(
-                                                SessionCreationPolicy.STATELESS))
+        return configuration.getAuthenticationManager();
+    }
 
-                                // Authorization
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/auth/**",
-                                                                "/swagger-ui/**",
-                                                                "/v3/api-docs/**")
-                                                .permitAll()
-                                                .anyRequest()
-                                                .authenticated())
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
-                                // HTTP Basic
-                                .httpBasic(Customizer.withDefaults())
+        http
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
 
-                                // JWT Filter
-                                .addFilterBefore(
-                                                jwtFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                return http.build();
-        }
+                .authorizeHttpRequests(auth -> auth
+
+        // Public APIs
+        .requestMatchers(
+                "/auth/login",
+                "/swagger-ui/**",
+                "/v3/api-docs/**")
+        .permitAll()
+
+        // Only ADMIN can access admin APIs
+        .requestMatchers("/auth/admin/**")
+        .hasRole("ADMIN")
+
+        // All other APIs require authentication
+        .anyRequest()
+        .authenticated())
+
+                .authenticationProvider(authenticationProvider())
+
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
 }

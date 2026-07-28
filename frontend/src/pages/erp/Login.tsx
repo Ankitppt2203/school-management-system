@@ -23,19 +23,24 @@ export default function Login() {
   const [err, setErr] = useState('');
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErr('');
-    setLoading(true);
-    try {
-      await login(email, password, role);
-      nav('/app');
-    } catch {
-      setErr('Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setErr("");
+  setLoading(true);
 
+  try {
+    const response = await login(email, password, role);
+
+    if (response.firstLogin) {
+      nav("/change-password");
+    } else {
+      nav("/app");
+    }
+  } catch {
+    setErr("Login failed. Please check your credentials.");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left visual */}

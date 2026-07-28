@@ -1,260 +1,128 @@
 package com.ankit.school_management.service;
 
-import com.ankit.school_management.DTO.StudentDTO;
+import com.ankit.school_management.dto.student.StudentRequestDTO;
+import com.ankit.school_management.dto.student.StudentResponseDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.entity.Student;
+import com.ankit.school_management.exception.DepartmentNotFoundException;
+import com.ankit.school_management.exception.DuplicateResourceException;
 import com.ankit.school_management.exception.StudentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import com.ankit.school_management.repository.StudentRepository;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import com.ankit.school_management.DTO.StudentResponseDTO;
-import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
+@Transactional(readOnly = true)
 public class StudentService {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "admissionNumber", "rollNumber", "firstName", "lastName", "academicSession", "admissionDate", "status");
 
     private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
 
-    public StudentService(
-            StudentRepository studentRepository,
-            DepartmentRepository departmentRepository) {
-
+    public StudentService(StudentRepository studentRepository, DepartmentRepository departmentRepository) {
         this.studentRepository = studentRepository;
         this.departmentRepository = departmentRepository;
     }
 
-    // ==========================
-    // CREATE STUDENT
-    // ==========================
+    public Page<StudentResponseDTO> getStudents(int page, int size, String sortBy, String direction) {
+        int validatedPage = Math.max(page, 0);
+        int validatedSize = Math.min(Math.max(size, 1), 100);
+        String validatedSort = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "firstName";
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize, Sort.by(sortDirection, validatedSort));
+        return studentRepository.findAll(pageable).map(this::toResponse);
+    }
 
-    public StudentDTO saveStudent(
-            StudentDTO studentDTO) {
+    public StudentResponseDTO getStudentById(Long id) {
+        return toResponse(findStudent(id));
+    }
 
-        Department department =
-                departmentRepository.findById(
-                                studentDTO.getDepartmentId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Department not found"));
-
+    @Transactional
+    public StudentResponseDTO saveStudent(StudentRequestDTO request) {
+        validateUniqueFields(request, null);
         Student student = new Student();
-
-        student.setName(studentDTO.getName());
-        student.setAge(studentDTO.getAge());
-        student.setDepartment(department);
-
-        Student savedStudent =
-                studentRepository.save(student);
-
-        return new StudentDTO(
-                savedStudent.getName(),
-                savedStudent.getAge(),
-                savedStudent.getDepartment().getId());
+        applyRequest(student, request, findDepartment(request.getDepartmentId()));
+        return toResponse(studentRepository.save(student));
     }
 
-    // ==========================
-    // GET ALL STUDENTS
-    // ==========================
-
-    public List<Student> getAllStudents() {
-
-        return studentRepository.findAll();
+    @Transactional
+    public StudentResponseDTO updateStudent(Long id, StudentRequestDTO request) {
+        Student student = findStudent(id);
+        validateUniqueFields(request, student);
+        applyRequest(student, request, findDepartment(request.getDepartmentId()));
+        return toResponse(studentRepository.save(student));
     }
 
-
-    // ==========================
-// GET ALL STUDENTS (DTO)
-// ==========================
-
-    public List<StudentResponseDTO> getAllStudentsDTO() {
-
-        return studentRepository.findAll()
-                .stream()
-                .map(student -> new StudentResponseDTO(
-
-                        student.getId(),
-
-                        student.getName(),
-
-                        student.getAge()
-
-                ))
-                .collect(Collectors.toList());
+    @Transactional
+    public void deleteStudent(Long id) {
+        studentRepository.delete(findStudent(id));
     }
 
-    // ==========================
-    // GET STUDENT BY ID
-    // ==========================
-
-    public Student getStudentById(
-            Long id) {
-
+    private Student findStudent(Long id) {
         return studentRepository.findById(id)
-                .orElseThrow(() ->
-                        new StudentNotFoundException(
-                                "Student with id "
-                                        + id
-                                        + " not found"));
+                .orElseThrow(() -> new StudentNotFoundException("Student with id " + id + " not found"));
     }
 
-    // ==========================
-// GET STUDENT BY ID (DTO)
-// ==========================
-
-    public StudentResponseDTO getStudentByIdDTO(
-            Long id) {
-
-        Student student =
-                studentRepository.findById(id)
-                        .orElseThrow(() ->
-                                new StudentNotFoundException(
-                                        "Student with id "
-                                                + id
-                                                + " not found"));
-
-        return new StudentResponseDTO(
-
-                student.getId(),
-
-                student.getName(),
-
-                student.getAge()
-
-        );
+    private Department findDepartment(Long departmentId) {
+        return departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new DepartmentNotFoundException("Department with id " + departmentId + " not found"));
     }
 
-    // ==========================
-    // UPDATE STUDENT
-    // ==========================
+    private void validateUniqueFields(StudentRequestDTO request, Student existingStudent) {
+        if ((existingStudent == null || !request.getAdmissionNumber().equals(existingStudent.getAdmissionNumber()))
+                && studentRepository.existsByAdmissionNumber(request.getAdmissionNumber())) {
+            throw new DuplicateResourceException("Admission number already exists");
+        }
+        if (request.getRollNumber() != null && !request.getRollNumber().isBlank()
+                && (existingStudent == null || !request.getRollNumber().equals(existingStudent.getRollNumber()))
+                && studentRepository.existsByRollNumber(request.getRollNumber())) {
+            throw new DuplicateResourceException("Roll number already exists");
+        }
+    }
 
-    public StudentDTO updateStudent(
-            Long id,
-            StudentDTO studentDTO) {
-
-        Student student =
-                studentRepository.findById(id)
-                        .orElseThrow(() ->
-                                new StudentNotFoundException(
-                                        "Student with id "
-                                                + id
-                                                + " not found"));
-
-        Department department =
-                departmentRepository.findById(
-                                studentDTO.getDepartmentId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Department not found"));
-
-        student.setName(studentDTO.getName());
-        student.setAge(studentDTO.getAge());
+    private void applyRequest(Student student, StudentRequestDTO request, Department department) {
+        student.setAdmissionNumber(request.getAdmissionNumber().trim());
+        student.setRollNumber(blankToNull(request.getRollNumber()));
+        student.setFirstName(request.getFirstName().trim());
+        student.setMiddleName(blankToNull(request.getMiddleName()));
+        student.setLastName(request.getLastName().trim());
+        student.setGender(blankToNull(request.getGender()));
+        student.setDateOfBirth(request.getDateOfBirth());
+        student.setAcademicSession(request.getAcademicSession().trim());
+        student.setAdmissionDate(request.getAdmissionDate());
+        student.setStatus(request.getStatus() == null || request.getStatus().isBlank() ? "ACTIVE" : request.getStatus().trim());
         student.setDepartment(department);
-
-        Student updatedStudent =
-                studentRepository.save(student);
-
-        return new StudentDTO(
-                updatedStudent.getName(),
-                updatedStudent.getAge(),
-                updatedStudent.getDepartment().getId());
     }
 
-    // ==========================
-    // DELETE STUDENT
-    // ==========================
-
-    public void deleteStudent(
-            Long id) {
-
-        studentRepository.deleteById(id);
+    private StudentResponseDTO toResponse(Student student) {
+        StudentResponseDTO response = new StudentResponseDTO();
+        response.setId(student.getId());
+        response.setAdmissionNumber(student.getAdmissionNumber());
+        response.setRollNumber(student.getRollNumber());
+        response.setFullName(student.getFullName());
+        response.setFirstName(student.getFirstName());
+        response.setMiddleName(student.getMiddleName());
+        response.setLastName(student.getLastName());
+        response.setGender(student.getGender());
+        response.setDateOfBirth(student.getDateOfBirth());
+        response.setAcademicSession(student.getAcademicSession());
+        response.setAdmissionDate(student.getAdmissionDate());
+        response.setStatus(student.getStatus());
+        response.setDepartmentId(student.getDepartment().getId());
+        response.setDepartmentName(student.getDepartment().getName());
+        return response;
     }
 
-    // ==========================
-    // FIND BY NAME
-    // ==========================
-
-    public List<Student> getStudentsByName(
-            String name) {
-
-        return studentRepository.findByName(name);
-    }
-
-    // ==========================
-    // AGE GREATER THAN
-    // ==========================
-
-    public List<Student> getStudentsOlderThan(
-            int age) {
-
-        return studentRepository.findByAgeGreaterThan(age);
-    }
-
-    // ==========================
-    // SEARCH NAME
-    // ==========================
-
-    public List<Student> searchStudentsByName(
-            String name) {
-
-        return studentRepository.findByNameContaining(name);
-    }
-
-    // ==========================
-    // NAME + AGE
-    // ==========================
-
-    public List<Student> getStudentsByNameAndAge(
-            String name,
-            int age) {
-
-        return studentRepository.findByNameAndAge(name, age);
-    }
-
-    // ==========================
-    // CUSTOM QUERY
-    // ==========================
-
-    public List<Student> getStudentsOlderThanQuery(
-            int age) {
-
-        return studentRepository.getStudentsOlderThan(age);
-    }
-
-    // ==========================
-    // PAGINATION
-    // ==========================
-
-    public Page<Student> getStudentsPage(
-            int page,
-            int size) {
-
-        return studentRepository.findAll(
-                PageRequest.of(page, size));
-    }
-
-    // ==========================
-    // PAGINATION + SORTING
-    // ==========================
-
-    public Page<Student> getStudentsPageSorted(
-            int page,
-            int size,
-            String sortBy,
-            String direction) {
-
-        Sort sort =
-                direction.equalsIgnoreCase("desc")
-                        ? Sort.by(sortBy).descending()
-                        : Sort.by(sortBy).ascending();
-
-        return studentRepository.findAll(
-                PageRequest.of(page, size, sort));
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

@@ -30,14 +30,6 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        System.out.println("Request Path: " + request.getServletPath());
-
-        // Skip JWT validation for login APIs
-        if (request.getServletPath().startsWith("/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String authHeader = request.getHeader("Authorization");
 
         // No Authorization header
@@ -53,9 +45,6 @@ public class JwtFilter extends OncePerRequestFilter {
             String username = jwtService.extractUsername(token);
             String role = jwtService.extractRole(token);
 
-            System.out.println("Authenticated User : " + username);
-            System.out.println("Role : " + role);
-
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UsernamePasswordAuthenticationToken authentication =
@@ -67,19 +56,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                System.out.println(
-                        "Authorities : " +
-                                SecurityContextHolder.getContext()
-                                        .getAuthentication()
-                                        .getAuthorities()
-                );
             }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
-
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
             response.getWriter().write("Invalid JWT Token");
             return;
         }

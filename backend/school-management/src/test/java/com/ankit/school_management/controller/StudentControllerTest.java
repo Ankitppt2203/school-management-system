@@ -1,135 +1,88 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.StudentDTO;
-import com.ankit.school_management.entity.Student;
+import com.ankit.school_management.dto.student.StudentRequestDTO;
+import com.ankit.school_management.dto.student.StudentResponseDTO;
 import com.ankit.school_management.service.StudentService;
+import com.ankit.school_management.security.JwtFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-
 import org.springframework.security.test.context.support.WithMockUser;
-
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import static org.mockito.ArgumentMatchers.any;
 
-
+@WebMvcTest(controllers = StudentController.class, properties = "jwt.secret=test-secret-key-with-at-least-32-bytes")
 @AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(StudentController.class)
 class StudentControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-
-
-    @MockBean
-    private StudentService studentService;
-
-
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    // =====================================
-    // CREATE STUDENT
-    // =====================================
+    @Autowired private MockMvc mockMvc;
+    @MockitoBean private StudentService studentService;
+    @MockitoBean private JwtFilter jwtFilter;
+    @Autowired private ObjectMapper objectMapper;
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void testAddStudent() throws Exception {
+    void createsStudentWithNewDtoContract() throws Exception {
+        StudentRequestDTO request = request();
+        when(studentService.saveStudent(any(StudentRequestDTO.class))).thenReturn(response());
 
-        StudentDTO request =
-                new StudentDTO(
-                        "Ankit",
-                        23,
-                        1L);
-
-
-        StudentDTO response =
-                new StudentDTO(
-                        "Ankit",
-                        23,
-                        1L);
-
-        when(studentService.saveStudent(any(StudentDTO.class)))
-                .thenReturn(response);
-
-        mockMvc.perform(
-                        post("/students")
-                                .with(csrf())
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Ankit"))
-                .andExpect(jsonPath("$.age").value(23))
-                .andExpect(jsonPath("$.departmentId").value(1));
+        mockMvc.perform(post("/students").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fullName").value("Ankit Kumar"))
+                .andExpect(jsonPath("$.admissionNumber").value("ADM-001"));
     }
 
-    // =====================================
-    // GET ALL STUDENTS
-    // =====================================
-
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    void testGetAllStudents() throws Exception {
-
-        Student student =
-                new Student();
-
-        student.setName("Ankit");
-        student.setAge(23);
-
-        when(studentService.getAllStudents())
-                .thenReturn(List.of(student));
+    @WithMockUser(roles = "ADMIN")
+    void returnsPagedStudentResponses() throws Exception {
+        when(studentService.getStudents(anyInt(), anyInt(), anyString(), anyString()))
+                .thenReturn(new PageImpl<>(List.of(response())));
 
         mockMvc.perform(get("/students"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name")
-                        .value("Ankit"))
-                .andExpect(jsonPath("$[0].age")
-                        .value(23));
+                .andExpect(jsonPath("$.content[0].fullName").value("Ankit Kumar"));
     }
 
-    // =====================================
-    // GET STUDENT BY ID
-    // =====================================
-
     @Test
-    @WithMockUser(roles = {"ADMIN"})
-    void testGetStudentById() throws Exception {
-
-        Student student =
-                new Student();
-
-        student.setName("Ankit");
-        student.setAge(23);
-
-        when(studentService.getStudentById(1L))
-                .thenReturn(student);
+    @WithMockUser(roles = "TEACHER")
+    void returnsStudentByIdUsingResponseDto() throws Exception {
+        when(studentService.getStudentById(1L)).thenReturn(response());
 
         mockMvc.perform(get("/students/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name")
-                        .value("Ankit"))
-                .andExpect(jsonPath("$.age")
-                        .value(23));
+                .andExpect(jsonPath("$.firstName").value("Ankit"));
+    }
+
+    private StudentRequestDTO request() {
+        return new StudentRequestDTO("ADM-001", "R-1", "Ankit", null, "Kumar", "MALE",
+                LocalDate.of(2002, 1, 1), "2025-26", LocalDate.of(2025, 4, 1), "ACTIVE", 1L);
+    }
+
+    private StudentResponseDTO response() {
+        StudentResponseDTO response = new StudentResponseDTO();
+        response.setId(1L);
+        response.setAdmissionNumber("ADM-001");
+        response.setFullName("Ankit Kumar");
+        response.setFirstName("Ankit");
+        response.setLastName("Kumar");
+        response.setDepartmentId(1L);
+        return response;
     }
 }

@@ -1,240 +1,282 @@
-import { useEffect, useState } from 'react';
-import { Column, DataTable, Pagination } from '../../components/erp/DataTable';
-import { PageHeader } from '../../components/erp/PageHeader';
-import { Modal } from '../../components/ui/Modal';
-import { ConfirmDialog, toast } from '../../components/ui/Toast';
-import { studentApi } from '../../services';
-import type { DepartmentOption, StudentFormValues, StudentRow } from '../../types/student';
-import { Plus, Pencil, Trash2, Eye, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from "react";
+import api from "../../api/axios";
+import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
+import { StudentRow, StudentPageResponse } from "../../types/student";
+import StudentForm from "../../components/students/StudentForm";
 
-const empty: StudentFormValues = {
-  name: '',
-  age: '',
-  departmentId: '',
-};
+const Students = () => {
+  // ==========================
+  // State
+  // ==========================
 
-export default function Students() {
-  const [rows, setRows] = useState<StudentRow[]>([]);
-  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [size] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [pageSize, setPageSize] = useState(8);
-  const [modal, setModal] = useState<{ mode: 'add' | 'edit' | 'view'; data: StudentRow | null } | null>(null);
-  const [form, setForm] = useState<StudentFormValues>(empty);
-  const [delId, setDelId] = useState<string | null>(null);
-  const loadStudents = async (nextPage = 1, nextSize = pageSize) => {
+  const [search, setSearch] = useState("");
+  const [openModal, setOpenModal] = useState(false);
+
+  // ==========================
+  // Load Students
+  // ==========================
+
+  useEffect(() => {
+    loadStudents();
+  }, [page]);
+
+  const loadStudents = async () => {
     try {
       setLoading(true);
-      setError('');
 
-      const [studentPage, departmentOptions] = await Promise.all([
-        studentApi.listPage(nextPage - 1, nextSize),
-        departments.length ? Promise.resolve(departments) : studentApi.listDepartments(),
-      ]);
+      const response = await api.get<StudentPageResponse>("/students", {
+        params: {
+          page,
+          size,
+          sortBy: "firstName",
+          direction: "asc",
+        },
+      });
 
-      setRows(studentPage.content);
-      setDepartments(departmentOptions);
-      setTotalPages(studentPage.totalPages);
-      setTotalStudents(studentPage.totalElements);
-      setPage(nextPage);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load students');
+      setStudents(response.data.content);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load students.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    void loadStudents(1, pageSize);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageSize]);
-
-  const openAdd = () => {
-    setForm(empty);
-    setModal({ mode: 'add', data: null });
-  };
-
-  const openEdit = (student: StudentRow) => {
-    setForm({
-      name: student.name,
-      age: student.age.toString(),
-      departmentId: student.departmentId,
-    });
-    setModal({ mode: 'edit', data: student });
-  };
-
-  const openView = (student: StudentRow) => setModal({ mode: 'view', data: student });
-
-  const save = async () => {
-    if (!form.name.trim() || !form.age.trim() || !form.departmentId.trim()) {
-      toast('Name, age, and department are required', 'error');
-      return;
-    }
-
-    const payload = {
-      name: form.name.trim(),
-      age: Number(form.age),
-      departmentId: Number(form.departmentId),
-    };
-
-    if (!Number.isFinite(payload.age) || payload.age <= 0) {
-      toast('Age must be greater than 0', 'error');
-      return;
-    }
-
-    if (!Number.isFinite(payload.departmentId) || payload.departmentId <= 0) {
-      toast('Select a valid department', 'error');
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      if (modal?.mode === 'add') {
-        await studentApi.create(payload);
-        toast('Student added successfully');
-      } else if (modal?.mode === 'edit' && modal.data) {
-        await studentApi.update(modal.data.id, payload);
-        toast('Student updated successfully');
-      }
-
-      setModal(null);
-      await loadStudents(page, pageSize);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to save student', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!delId) {
-      return;
-    }
-
-    try {
-      await studentApi.remove(delId);
-      toast('Student deleted');
-      setDelId(null);
-      await loadStudents(page, pageSize);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to delete student', 'error');
-    }
-  };
-
-  const columns: Column<StudentRow>[] = [
-    {
-      key: 'name',
-      label: 'Student',
-      render: (student) => (
-        <div>
-          <div className="font-semibold text-ink-900 dark:text-white">{student.name}</div>
-          <div className="text-xs text-ink-400">ID {student.id}</div>
-        </div>
-      ),
-    },
-    { key: 'age', label: 'Age' },
-    { key: 'departmentName', label: 'Department' },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (student) => (
-        <div className="flex gap-1">
-          <button onClick={() => openView(student)} className="btn-ghost p-1.5 rounded-lg" title="View"><Eye className="h-4 w-4" /></button>
-          <button onClick={() => openEdit(student)} className="btn-ghost p-1.5 rounded-lg" title="Edit"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setDelId(student.id)} className="btn-ghost p-1.5 rounded-lg text-rose-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
-        </div>
-      ),
-    },
-  ];
-
-  const departmentLabel = (departmentId: string) => departments.find((department) => department.id.toString() === departmentId)?.name ?? 'Select a department';
+  // ==========================
+  // UI
+  // ==========================
 
   return (
-    <div>
-      <PageHeader
-        title="Students"
-        subtitle={loading ? 'Loading students...' : `${totalStudents} students enrolled`}
-        action={(
-          <div className="flex gap-2">
-            <button onClick={() => void loadStudents(page, pageSize)} className="btn-secondary">
-              <RefreshCw className="h-4 w-4" /> Refresh
-            </button>
-            <button onClick={openAdd} className="btn-primary"><Plus className="h-4 w-4" /> Add Student</button>
-          </div>
-        )}
-      />
+    <div className="p-6 space-y-6">
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-ink-500">Rows per page</label>
-          <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input !py-2 !w-28">
-            {[5, 8, 10, 20].map((size) => <option key={size} value={size}>{size}</option>)}
-          </select>
+      {/* Header */}
+
+      <div className="flex items-center justify-between">
+
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            Students
+          </h1>
+
+          <p className="text-gray-500 mt-1">
+            Manage all students in your school.
+          </p>
         </div>
+
+        <button
+  onClick={() => setOpenModal(true)}
+  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+>
+  <Plus size={18} />
+  Add Student
+</button>
+
       </div>
 
-      {error ? <div className="card p-4 mb-4 text-rose-600">{error}</div> : null}
+      {/* Search */}
 
-      <DataTable columns={columns} rows={rows} loading={loading} empty="No students found." />
-      <Pagination page={page} total={totalPages} onChange={(nextPage) => { void loadStudents(nextPage, pageSize); }} />
+      <div className="bg-white rounded-lg shadow p-4">
 
-      {/* Add / Edit modal */}
-      <Modal open={!!modal && modal.mode !== 'view'} onClose={() => setModal(null)} title={modal?.mode === 'add' ? 'Add Student' : 'Edit Student'} size="lg">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Full Name</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" />
-          </div>
-          <div>
-            <label className="label">Age</label>
-            <input type="number" min="1" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="input" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label">Department</label>
-            <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })} className="input">
-              <option value="">Select a department</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>{department.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">
-            Selected department: {departmentLabel(form.departmentId)}
-          </div>
+        <div className="relative w-full md:w-96">
+
+          <Search
+            size={18}
+            className="absolute left-3 top-3 text-gray-400"
+          />
+
+          <input
+            type="text"
+            placeholder="Search Student..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={() => void save()} disabled={saving}>{saving ? 'Saving...' : modal?.mode === 'add' ? 'Add Student' : 'Save Changes'}</button>
-        </div>
-      </Modal>
 
-      {/* View modal */}
-      <Modal open={!!modal && modal.mode === 'view'} onClose={() => setModal(null)} title="Student Profile" size="md">
-        {modal?.data && (
-          <div className="text-center">
-            <h3 className="mt-4 font-display text-xl font-bold text-ink-900 dark:text-white">{modal.data.name}</h3>
-            <p className="text-sm text-brand-600">{modal.data.id} • {modal.data.departmentName}</p>
-            <div className="grid grid-cols-2 gap-3 mt-6 text-left">
-              {[
-                ['Student ID', modal.data.id], ['Age', modal.data.age.toString()],
-                ['Department', modal.data.departmentName], ['Department ID', modal.data.departmentId || 'N/A'],
-              ].map(([l, v]) => (
-                <div key={l} className="bg-ink-50 dark:bg-ink-800/50 rounded-xl p-3">
-                  <div className="text-xs text-ink-400">{l}</div>
-                  <div className="text-sm font-medium text-ink-800 dark:text-ink-100">{v}</div>
-                </div>
-              ))}
-            </div>
+      </div>
+
+      {/* Student Table */}
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+
+        {loading ? (
+
+          <div className="p-10 text-center">
+            Loading...
           </div>
+
+        ) : (
+
+          <table className="w-full">
+
+            <thead className="bg-gray-100">
+
+              <tr>
+
+                <th className="p-3 text-left">Admission No</th>
+                <th className="p-3 text-left">Roll No</th>
+                <th className="p-3 text-left">Student</th>
+                <th className="p-3 text-left">Department</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-center">Actions</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {students.map((student) => (
+
+                <tr
+                  key={student.id}
+                  className="border-t hover:bg-gray-50"
+                >
+
+                  <td className="p-3">
+                    {student.admissionNumber}
+                  </td>
+
+                  <td className="p-3">
+                    {student.rollNumber}
+                  </td>
+
+                  <td className="p-3">
+                    <div className="font-medium">
+                      {student.fullName}
+                    </div>
+                  </td>
+
+                  <td className="p-3">
+                    {student.departmentName}
+                  </td>
+
+                  <td className="p-3">
+                    <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-sm">
+                      {student.status}
+                    </span>
+                  </td>
+
+                  <td className="p-3">
+
+                    <div className="flex justify-center gap-2">
+
+                      <button className="p-2 rounded hover:bg-gray-200">
+                        <Eye size={18} />
+                      </button>
+
+                      <button className="p-2 rounded hover:bg-blue-100 text-blue-600">
+                        <Edit size={18} />
+                      </button>
+
+                      <button className="p-2 rounded hover:bg-red-100 text-red-600">
+                        <Trash2 size={18} />
+                      </button>
+
+                    </div>
+
+                  </td>
+
+                </tr>
+
+              ))}
+
+              {students.length === 0 && (
+
+                <tr>
+
+                  <td
+                    colSpan={6}
+                    className="text-center py-10 text-gray-500"
+                  >
+                    No students found.
+                  </td>
+
+                </tr>
+
+              )}
+
+            </tbody>
+
+          </table>
+
         )}
-      </Modal>
 
-      <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={confirmDelete} message="Are you sure you want to delete this student? This action cannot be undone." />
+      </div>
+
+      {/* Pagination */}
+
+      <div className="flex justify-end items-center gap-2">
+
+        <button
+          disabled={page === 0}
+          onClick={() => setPage(page - 1)}
+          className="px-4 py-2 border rounded disabled:opacity-50"
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {page + 1} of {totalPages}
+        </span>
+
+        <button
+          disabled={page + 1 >= totalPages}
+          onClick={() => setPage(page + 1)}
+          className="px-4 py-2 border rounded disabled:opacity-50"
+        >
+          Next
+        </button>
+
+      </div>
+
+      {/* Add Student Modal */}
+
+{openModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+    <div className="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+
+      <div className="flex justify-between items-center mb-6">
+
+        <h2 className="text-2xl font-bold">
+          Add Student
+        </h2>
+
+        <button
+          onClick={() => setOpenModal(false)}
+          className="text-2xl hover:text-red-500"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <p className="text-gray-500 mb-6">
+        Fill in the student details below.
+      </p>
+
+      {/* Student Form */}
+
+<StudentForm
+  onClose={() => setOpenModal(false)}
+  onSuccess={loadStudents}
+/>
+
+    </div>
+
+  </div>
+)}
+
     </div>
   );
-}
+};
+
+export default Students;

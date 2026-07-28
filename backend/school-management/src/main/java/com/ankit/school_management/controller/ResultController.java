@@ -1,7 +1,7 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.ReportCardDTO;
-import com.ankit.school_management.DTO.ResultDTO;
+import com.ankit.school_management.dto.ReportCardDTO;
+import com.ankit.school_management.dto.ResultDTO;
 import com.ankit.school_management.entity.Result;
 import com.ankit.school_management.service.ResultService;
 import jakarta.validation.Valid;

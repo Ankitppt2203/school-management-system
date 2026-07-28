@@ -1,4 +1,4 @@
-package com.ankit.school_management.DTO;
+package com.ankit.school_management.dto;
 
 public class ErrorResponse {
 

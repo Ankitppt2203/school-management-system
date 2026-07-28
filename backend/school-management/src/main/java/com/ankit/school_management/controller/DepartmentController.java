@@ -1,6 +1,6 @@
 package com.ankit.school_management.controller;
 
-import com.ankit.school_management.DTO.DepartmentDTO;
+import com.ankit.school_management.dto.DepartmentDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.service.DepartmentService;
 import jakarta.validation.Valid;

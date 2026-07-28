@@ -13,10 +13,10 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   login: (
-    username: string,
-    password: string,
-    role: Role
-  ) => Promise<void>;
+  username: string,
+  password: string,
+  role: Role
+) => Promise<LoginResponseData>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -133,6 +133,7 @@ export function AuthProvider({
           token: response.token,
         })
       );
+      return response;
     } catch (err: any) {
       const errorMessage =
         err.response?.data?.message ||
