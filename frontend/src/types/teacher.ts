@@ -1,14 +1,12 @@
-export interface TeacherDepartmentSummary {
-  id: number;
-  name: string;
-}
-
 export interface TeacherRecord {
   id: number;
   name: string;
   subject: string;
   salary: number;
-  department?: TeacherDepartmentSummary | null;
+  departmentId: number;
+  departmentName: string;
+  username?: string;
+  profileDetails?: Record<string, string>;
 }
 
 export interface TeacherFormValues {
@@ -16,6 +14,9 @@ export interface TeacherFormValues {
   subject: string;
   salary: string;
   departmentId: string;
+  username: string;
+  password: string;
+  profileDetails: Record<string, string>;
 }
 
 export interface TeacherPayload {
@@ -23,6 +24,9 @@ export interface TeacherPayload {
   subject: string;
   salary: number;
   departmentId: number;
+  username?: string;
+  password?: string;
+  profileDetails: Record<string, string>;
 }
 
 export interface TeacherRow {
@@ -32,6 +36,8 @@ export interface TeacherRow {
   salary: number;
   departmentId: string;
   departmentName: string;
+  username?: string;
+  profileDetails: Record<string, string>;
 }
 
 export interface DepartmentOption {

@@ -17,6 +17,10 @@ public class StudentResponseDTO {
     private String academicSession;
     private LocalDate admissionDate;
     private String status;
+    private java.util.List<Long> courseIds;
+    private java.util.List<String> courseNames;
+    private String username;
+    private java.util.Map<String, String> admissionDetails;
 
     public StudentResponseDTO() { }
     public Long getId() { return id; }
@@ -47,4 +51,12 @@ public class StudentResponseDTO {
     public void setAdmissionDate(LocalDate admissionDate) { this.admissionDate = admissionDate; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public java.util.List<Long> getCourseIds() { return courseIds; }
+    public void setCourseIds(java.util.List<Long> courseIds) { this.courseIds = courseIds; }
+    public java.util.List<String> getCourseNames() { return courseNames; }
+    public void setCourseNames(java.util.List<String> courseNames) { this.courseNames = courseNames; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public java.util.Map<String, String> getAdmissionDetails() { return admissionDetails; }
+    public void setAdmissionDetails(java.util.Map<String, String> admissionDetails) { this.admissionDetails = admissionDetails; }
 }

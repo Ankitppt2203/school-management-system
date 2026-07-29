@@ -133,6 +133,8 @@ export function AuthProvider({
           token: response.token,
         })
       );
+      // Keep the legacy key in sync while older API modules are being migrated.
+      localStorage.setItem("token", response.token);
       return response;
     } catch (err: any) {
       const errorMessage =
@@ -153,6 +155,7 @@ export function AuthProvider({
     setToken(null);
     setError(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("token");
   };
 
   const value: AuthContextValue = {

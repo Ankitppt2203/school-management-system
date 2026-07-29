@@ -8,6 +8,9 @@ import com.ankit.school_management.exception.DuplicateResourceException;
 import com.ankit.school_management.exception.StudentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import com.ankit.school_management.repository.StudentRepository;
+import com.ankit.school_management.repository.CourseRepository;
+import com.ankit.school_management.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -28,6 +31,9 @@ import static org.mockito.Mockito.when;
 class StudentServiceTest {
     @Mock private StudentRepository studentRepository;
     @Mock private DepartmentRepository departmentRepository;
+    @Mock private CourseRepository courseRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordEncoder passwordEncoder;
     @InjectMocks private StudentService studentService;
 
     @Test

@@ -1,10 +1,10 @@
 import api from './api';
-import type { Teacher, Department, Exam, Result } from '../types';
-import type { DepartmentOption, StudentPageResponse, StudentPayload, StudentRecord, StudentRow } from '../types/student';
+import type { Exam, Result } from '../types';
+import type { DepartmentOption, StudentPageResponse, StudentPayload, StudentRow } from '../types/student';
 import type { DepartmentOption as TeacherDepartmentOption, TeacherPayload, TeacherRecord, TeacherRow } from '../types/teacher';
-import type { DepartmentFormValues, DepartmentPayload, DepartmentRecord, DepartmentRow } from '../types/department';
-import type { CourseFormValues, CoursePayload, CourseRecord, CourseRow } from '../types/course';
-import type { AttendanceFormValues, AttendancePayload, AttendanceRecord, AttendanceRow } from '../types/attendance';
+import type { DepartmentPayload, DepartmentRecord, DepartmentRow } from '../types/department';
+import type { CoursePayload, CourseRecord, CourseRow } from '../types/course';
+import type { AttendancePayload, AttendanceRecord, AttendanceRow } from '../types/attendance';
 
 // ===============================
 // Generic CRUD Factory
@@ -42,15 +42,14 @@ export const studentApi = {
 },
 
   listAll: async (): Promise<StudentRow[]> => {
-    const response = await api.get('/students');
-
-    return (response.data as StudentRecord[]).map(mapStudentRecord);
+    const response = await api.get<StudentPageResponse>('/students', { params: { page: 0, size: 100 } });
+    return response.data.content.map(mapStudentRecord);
   },
 
   getById: async (id: string): Promise<StudentRow> => {
     const response = await api.get(`/students/${id}`);
 
-    return mapStudentRecord(response.data as StudentRecord);
+    return mapStudentRecord(response.data as StudentRow);
   },
 
   create: async (data: StudentPayload): Promise<StudentPayload> => {
@@ -79,7 +78,7 @@ export const studentApi = {
   },
 };
 
-function mapStudentRecord(student: StudentRecord): StudentRow {
+function mapStudentRecord(student: StudentRow): StudentRow {
   return {
     id: student.id,
 
@@ -108,6 +107,12 @@ function mapStudentRecord(student: StudentRecord): StudentRow {
     departmentId: student.departmentId,
 
     departmentName: student.departmentName,
+
+    courseIds: student.courseIds ?? [],
+
+    courseNames: student.courseNames ?? [],
+    username: student.username,
+    admissionDetails: student.admissionDetails ?? {},
   };
 }
 
@@ -155,15 +160,15 @@ export const teacherApi = {
 };
 
 function mapTeacherRecord(teacher: TeacherRecord): TeacherRow {
-  const departmentId = teacher.department?.id ?? 0;
-
   return {
     id: teacher.id.toString(),
     name: teacher.name,
     subject: teacher.subject,
     salary: teacher.salary,
-    departmentId: departmentId ? departmentId.toString() : '',
-    departmentName: teacher.department?.name ?? 'Unassigned',
+    departmentId: teacher.departmentId.toString(),
+    departmentName: teacher.departmentName,
+    username: teacher.username,
+    profileDetails: teacher.profileDetails ?? {},
   };
 }
 
@@ -201,8 +206,10 @@ function mapDepartmentRecord(department: DepartmentRecord): DepartmentRow {
   return {
     id: department.id.toString(),
     name: department.name,
-    studentCount: Array.isArray(department.students) ? department.students.length : 0,
-    teacherCount: Array.isArray(department.teachers) ? department.teachers.length : 0,
+    studentCount: department.studentCount ?? 0,
+    teacherCount: department.teacherCount ?? 0,
+    studentNames: department.studentNames ?? [],
+    teacherNames: department.teacherNames ?? [],
   };
 }
 
@@ -233,6 +240,10 @@ export const courseApi = {
 
   remove: async (id: string): Promise<void> => {
     await api.delete(`/courses/${id}`);
+  },
+  listStudents: async (id: string): Promise<Array<{ id: number; admissionNumber: string; fullName: string }>> => {
+    const response = await api.get(`/courses/${id}/students`);
+    return response.data;
   },
 };
 
@@ -308,37 +319,6 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
-export interface StudentRecord {
-
-    id: number;
-
-    admissionNumber: string;
-
-    rollNumber: string;
-
-    fullName: string;
-
-    firstName: string;
-
-    middleName?: string;
-
-    lastName: string;
-
-    gender: string;
-
-    dateOfBirth: string;
-
-    departmentId: number;
-
-    departmentName: string;
-
-    academicSession: string;
-
-    admissionDate: string;
-
-    status: string;
-}
-
 export const authApi = {
   login: async (
     username: string,
@@ -353,9 +333,9 @@ export const authApi = {
       }
     );
 
-    // Save JWT
-    localStorage.setItem("token", response.data.token);
-
     return response.data;
+  },
+  changePassword: async (data: ChangePasswordRequest): Promise<void> => {
+    await api.post("/auth/change-password", data);
   },
 };

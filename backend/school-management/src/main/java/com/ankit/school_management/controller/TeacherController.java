@@ -1,6 +1,7 @@
 package com.ankit.school_management.controller;
 
 import com.ankit.school_management.dto.TeacherDTO;
+import com.ankit.school_management.dto.TeacherResponseDTO;
 import com.ankit.school_management.entity.Teacher;
 import com.ankit.school_management.service.TeacherService;
 import jakarta.validation.Valid;
@@ -35,7 +36,7 @@ public class TeacherController {
     // Get All Teachers
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Teacher> getTeachers() {
+    public List<TeacherResponseDTO> getTeachers() {
 
         return teacherService.getAllTeachers();
     }
@@ -43,7 +44,7 @@ public class TeacherController {
     // Get Teacher By Id
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public Teacher getTeacherById(
+    public TeacherResponseDTO getTeacherById(
             @PathVariable Long id) {
 
         return teacherService.getTeacherById(id);

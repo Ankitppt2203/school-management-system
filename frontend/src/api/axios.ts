@@ -8,13 +8,28 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const raw = localStorage.getItem("greenwood_auth");
+    const token = raw ? JSON.parse(raw).token : null;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    localStorage.removeItem("greenwood_auth");
   }
-
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem("greenwood_auth");
+      localStorage.removeItem("token"); // Remove the legacy key left by earlier app versions.
+      if (window.location.pathname.startsWith("/app")) window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default api;

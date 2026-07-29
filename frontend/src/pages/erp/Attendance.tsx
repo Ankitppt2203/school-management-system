@@ -7,7 +7,7 @@ import { ConfirmDialog, toast } from '../../components/ui/Toast';
 import { attendanceApi, studentApi } from '../../services';
 import type { AttendanceFormValues, AttendanceRow } from '../../types/attendance';
 import type { StudentRow } from '../../types/student';
-import { Calendar, Check, X, Clock, Plus, Pencil, Trash2, Eye, Search, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Search, RefreshCw } from 'lucide-react';
 
 const empty: AttendanceFormValues = {
   date: new Date().toISOString().slice(0, 10),
@@ -153,7 +153,7 @@ export default function Attendance() {
     },
   ];
 
-  const studentLabel = (studentId: string) => students.find((student) => student.id === studentId)?.name ?? 'Select a student';
+  const studentLabel = (studentId: string) => students.find((student) => student.id === Number(studentId))?.fullName ?? 'Select a student';
 
   return (
     <div>
@@ -218,7 +218,7 @@ export default function Attendance() {
             <label className="label">Student</label>
             <select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} className="input">
               <option value="">Select a student</option>
-              {students.map((student) => <option key={student.id} value={student.id}>{student.name} (ID {student.id})</option>)}
+              {students.map((student) => <option key={student.id} value={student.id}>{student.fullName} (ID {student.id})</option>)}
             </select>
           </div>
           <div className="sm:col-span-2 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">

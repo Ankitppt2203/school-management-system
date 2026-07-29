@@ -16,6 +16,8 @@ const Students = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<StudentRow | null>(null);
+  const [viewingStudent, setViewingStudent] = useState<StudentRow | null>(null);
 
   // ==========================
   // Load Students
@@ -33,8 +35,9 @@ const Students = () => {
         params: {
           page,
           size,
-          sortBy: "firstName",
-          direction: "asc",
+          // New admissions are kept at the top so a saved student is visible immediately.
+          sortBy: "admissionDate",
+          direction: "desc",
         },
       });
 
@@ -45,6 +48,29 @@ const Students = () => {
       alert("Failed to load students.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStudentAdded = async (student: StudentRow) => {
+    // Put the newly created student in the visible list immediately, then
+    // reload so pagination and sorting remain correct.
+    setStudents((current) => [student, ...current.filter((item) => item.id !== student.id)].slice(0, size));
+    setOpenModal(false);
+    if (page !== 0) {
+      setPage(0);
+    } else {
+      await loadStudents();
+    }
+  };
+
+  const removeStudent = async (student: StudentRow) => {
+    if (!window.confirm(`Delete ${student.fullName}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/students/${student.id}`);
+      await loadStudents();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete student.");
     }
   };
 
@@ -70,7 +96,7 @@ const Students = () => {
         </div>
 
         <button
-  onClick={() => setOpenModal(true)}
+  onClick={() => { setEditingStudent(null); setOpenModal(true); }}
   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
 >
   <Plus size={18} />
@@ -168,15 +194,15 @@ const Students = () => {
 
                     <div className="flex justify-center gap-2">
 
-                      <button className="p-2 rounded hover:bg-gray-200">
+                      <button onClick={() => setViewingStudent(student)} className="p-2 rounded hover:bg-gray-200" title="View student">
                         <Eye size={18} />
                       </button>
 
-                      <button className="p-2 rounded hover:bg-blue-100 text-blue-600">
+                      <button onClick={() => { setEditingStudent(student); setOpenModal(true); }} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Edit student">
                         <Edit size={18} />
                       </button>
 
-                      <button className="p-2 rounded hover:bg-red-100 text-red-600">
+                      <button onClick={() => void removeStudent(student)} className="p-2 rounded hover:bg-red-100 text-red-600" title="Delete student">
                         <Trash2 size={18} />
                       </button>
 
@@ -247,11 +273,11 @@ const Students = () => {
       <div className="flex justify-between items-center mb-6">
 
         <h2 className="text-2xl font-bold">
-          Add Student
+          {editingStudent ? "Edit Student" : "Add Student"}
         </h2>
 
         <button
-          onClick={() => setOpenModal(false)}
+          onClick={() => { setOpenModal(false); setEditingStudent(null); }}
           className="text-2xl hover:text-red-500"
         >
           ×
@@ -266,14 +292,17 @@ const Students = () => {
       {/* Student Form */}
 
 <StudentForm
-  onClose={() => setOpenModal(false)}
-  onSuccess={loadStudents}
+  student={editingStudent}
+  onClose={() => { setOpenModal(false); setEditingStudent(null); }}
+  onSuccess={handleStudentAdded}
 />
 
     </div>
 
   </div>
 )}
+
+      {viewingStudent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6"><div className="flex items-start justify-between"><div><h2 className="text-2xl font-bold">{viewingStudent.fullName}</h2><p className="text-gray-500">Admission No. {viewingStudent.admissionNumber} · Username: {viewingStudent.username}</p></div><button onClick={() => setViewingStudent(null)} className="text-2xl">×</button></div><div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">{[["Department", viewingStudent.departmentName], ["Courses", viewingStudent.courseNames?.join(", ") || "None"], ["Roll Number", viewingStudent.rollNumber || "—"], ["Date of Birth", viewingStudent.dateOfBirth || "—"], ["Gender", viewingStudent.gender || "—"], ["Academic Year", viewingStudent.academicSession], ["Admission Date", viewingStudent.admissionDate], ["Status", viewingStudent.status], ...Object.entries(viewingStudent.admissionDetails ?? {}).map(([key, value]) => [key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()), value || "—"] as [string, string])].map(([label, value]) => <div key={label} className="rounded bg-gray-50 p-3"><div className="text-gray-500">{label}</div><div className="font-medium">{value}</div></div>)}</div></div></div>}
 
     </div>
   );

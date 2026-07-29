@@ -1,7 +1,7 @@
 package com.ankit.school_management.controller;
 
 import com.ankit.school_management.dto.DepartmentDTO;
-import com.ankit.school_management.entity.Department;
+import com.ankit.school_management.dto.DepartmentResponseDTO;
 import com.ankit.school_management.service.DepartmentService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,7 +35,7 @@ public class DepartmentController {
     // Get All Departments
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Department> getAllDepartments() {
+    public List<DepartmentResponseDTO> getAllDepartments() {
 
         return departmentService.getAllDepartments();
     }
@@ -43,7 +43,7 @@ public class DepartmentController {
     // Get Department By Id
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public Department getDepartmentById(
+    public DepartmentResponseDTO getDepartmentById(
             @PathVariable Long id) {
 
         return departmentService.getDepartmentById(id);

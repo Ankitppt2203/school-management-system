@@ -3,6 +3,7 @@ package com.ankit.school_management.dto.student;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -26,6 +27,11 @@ public class StudentRequestDTO {
     private String status;
     @NotNull(message = "Department is required")
     private Long departmentId;
+    private java.util.List<Long> courseIds;
+    @Size(min = 6, message = "Password must contain at least 6 characters")
+    private String password;
+    private String username;
+    private java.util.Map<String, String> admissionDetails;
 
     public StudentRequestDTO() { }
 
@@ -66,4 +72,12 @@ public class StudentRequestDTO {
     public void setStatus(String status) { this.status = status; }
     public Long getDepartmentId() { return departmentId; }
     public void setDepartmentId(Long departmentId) { this.departmentId = departmentId; }
+    public java.util.List<Long> getCourseIds() { return courseIds; }
+    public void setCourseIds(java.util.List<Long> courseIds) { this.courseIds = courseIds; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public java.util.Map<String, String> getAdmissionDetails() { return admissionDetails; }
+    public void setAdmissionDetails(java.util.Map<String, String> admissionDetails) { this.admissionDetails = admissionDetails; }
 }

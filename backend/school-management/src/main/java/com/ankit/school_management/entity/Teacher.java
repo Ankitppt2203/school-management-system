@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
+import java.util.HashMap;
 
 @Entity
 public class Teacher {
@@ -20,6 +22,15 @@ public class Teacher {
 
     @Min(value = 1, message = "Salary must be greater than 0")
     private double salary;
+
+    @Column(unique = true)
+    private String username;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "teacher_profile_details", joinColumns = @JoinColumn(name = "teacher_id"))
+    @MapKeyColumn(name = "detail_key")
+    @Column(name = "detail_value", length = 2000)
+    private Map<String, String> profileDetails = new HashMap<>();
 
     @JsonBackReference("department-teacher")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -68,6 +79,10 @@ public class Teacher {
     public void setSalary(double salary) {
         this.salary = salary;
     }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public Map<String, String> getProfileDetails() { return profileDetails; }
+    public void setProfileDetails(Map<String, String> profileDetails) { this.profileDetails = profileDetails; }
 
     public Department getDepartment() {
         return department;

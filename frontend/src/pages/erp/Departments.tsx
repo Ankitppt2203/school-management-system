@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Column, DataTable, Pagination } from '../../components/erp/DataTable';
 import { PageHeader } from '../../components/erp/PageHeader';
 import { Modal } from '../../components/ui/Modal';
@@ -206,6 +205,10 @@ export default function Departments() {
                 </div>
               ))}
             </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <MemberList title="Students" names={selectedDepartment.studentNames} empty="No students assigned yet." />
+              <MemberList title="Teachers" names={selectedDepartment.teacherNames} empty="No teachers assigned yet." />
+            </div>
           </div>
         )}
       </Modal>
@@ -213,4 +216,8 @@ export default function Departments() {
       <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={confirmDelete} message="Delete this department?" />
     </div>
   );
+}
+
+function MemberList({ title, names, empty }: { title: string; names: string[]; empty: string }) {
+  return <div className="rounded-xl bg-ink-50 p-3 text-sm dark:bg-ink-800/50"><div className="mb-2 font-medium">{title}</div>{names.length ? <ul className="space-y-1 text-ink-500">{names.map((name) => <li key={name}>{name}</li>)}</ul> : <p className="text-ink-400">{empty}</p>}</div>;
 }

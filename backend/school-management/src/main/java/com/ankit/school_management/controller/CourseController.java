@@ -3,6 +3,7 @@ package com.ankit.school_management.controller;
 import com.ankit.school_management.dto.CourseDTO;
 import com.ankit.school_management.entity.Course;
 import com.ankit.school_management.entity.Student;
+import com.ankit.school_management.dto.student.StudentCourseSummaryDTO;
 import com.ankit.school_management.service.CourseService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +39,12 @@ public class CourseController {
     public List<Course> getCourses() {
 
         return courseService.getAllCourses();
+    }
+
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public List<StudentCourseSummaryDTO> getStudentsForCourse(@PathVariable Long id) {
+        return courseService.getStudentsForCourse(id);
     }
 
     // Get Course By Id

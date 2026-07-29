@@ -12,6 +12,9 @@ const empty: TeacherFormValues = {
   subject: '',
   salary: '',
   departmentId: '',
+  username: '',
+  password: '',
+  profileDetails: {},
 };
 
 export default function Teachers() {
@@ -70,6 +73,9 @@ export default function Teachers() {
       subject: teacher.subject,
       salary: teacher.salary.toString(),
       departmentId: teacher.departmentId,
+      username: '',
+      password: '',
+      profileDetails: teacher.profileDetails ?? {},
     });
     setModal({ mode: 'edit', data: teacher });
   };
@@ -87,6 +93,9 @@ export default function Teachers() {
       subject: form.subject.trim(),
       salary: Number(form.salary),
       departmentId: Number(form.departmentId),
+      username: form.username.trim() || undefined,
+      password: form.password || undefined,
+      profileDetails: form.profileDetails,
     };
 
     if (!Number.isFinite(payload.salary) || payload.salary <= 0) {
@@ -96,6 +105,14 @@ export default function Teachers() {
 
     if (!Number.isFinite(payload.departmentId) || payload.departmentId <= 0) {
       toast('Select a valid department', 'error');
+      return;
+    }
+    if (modal?.mode === 'add' && (!payload.username || !payload.password)) {
+      toast('Login username and password are required for a new teacher', 'error');
+      return;
+    }
+    if (payload.password && payload.password.length < 6) {
+      toast('Password must contain at least 6 characters', 'error');
       return;
     }
 
@@ -216,6 +233,17 @@ export default function Teachers() {
               {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
             </select>
           </div>
+          {modal?.mode === 'add' && <>
+            <div>
+              <label className="label">Login Username</label>
+              <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="input" placeholder="teacher.username" />
+            </div>
+            <div>
+              <label className="label">Account Password</label>
+              <input required type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input" placeholder="At least 6 characters" />
+            </div>
+          </>}
+          <TeacherProfileFields details={form.profileDetails} onChange={(key, value) => setForm({ ...form, profileDetails: { ...form.profileDetails, [key]: value } })} />
           <div className="sm:col-span-2 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">
             Selected department: {selectedDepartmentLabel(form.departmentId)}
           </div>
@@ -242,7 +270,7 @@ export default function Teachers() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 text-sm text-ink-500">Department ID: {modal.data.departmentId || 'Not returned by the API'}</div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-left">{Object.entries(modal.data.profileDetails ?? {}).map(([key, value]) => <div key={key} className="rounded-xl bg-ink-50 p-3"><div className="text-xs text-ink-400">{key.replace(/([A-Z])/g, ' $1')}</div><div className="text-sm font-medium">{value}</div></div>)}</div>
           </div>
         )}
       </Modal>
@@ -250,4 +278,9 @@ export default function Teachers() {
       <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={confirmDelete} message="Delete this teacher record?" />
     </div>
   );
+}
+
+function TeacherProfileFields({ details, onChange }: { details: Record<string, string>; onChange: (key: string, value: string) => void }) {
+  const fields = [['employeeId', 'Employee ID'], ['dateOfBirth', 'Date of Birth'], ['gender', 'Gender'], ['phoneNumber', 'Phone Number'], ['emailAddress', 'Email Address'], ['address', 'Address'], ['qualification', 'Qualification'], ['yearsOfExperience', 'Years of Experience'], ['dateOfJoining', 'Date of Joining'], ['employmentType', 'Employment Type (Full-Time / Part-Time)']];
+  return <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4 rounded-xl border p-4"><div className="sm:col-span-2 font-medium">Professional profile</div>{fields.map(([key, label]) => <div key={key}><label className="label">{label}</label><input type={key.includes('Date') ? 'date' : key === 'emailAddress' ? 'email' : 'text'} value={details[key] ?? ''} onChange={(event) => onChange(key, event.target.value)} className="input" /></div>)}</div>;
 }

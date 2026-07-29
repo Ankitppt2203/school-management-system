@@ -1,12 +1,19 @@
 package com.ankit.school_management.service;
 
 import com.ankit.school_management.dto.TeacherDTO;
+import com.ankit.school_management.dto.TeacherResponseDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.entity.Teacher;
+import com.ankit.school_management.entity.User;
+import com.ankit.school_management.entity.Role;
 import com.ankit.school_management.exception.DepartmentNotFoundException;
 import com.ankit.school_management.exception.TeacherNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import com.ankit.school_management.repository.TeacherRepository;
+import com.ankit.school_management.repository.UserRepository;
+import com.ankit.school_management.exception.DuplicateResourceException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,16 +23,21 @@ public class TeacherService {
 
     private final TeacherRepository teacherRepository;
     private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public TeacherService(
             TeacherRepository teacherRepository,
-            DepartmentRepository departmentRepository) {
+            DepartmentRepository departmentRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
 
         this.teacherRepository = teacherRepository;
         this.departmentRepository = departmentRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // Create Teacher
+    @Transactional
     public TeacherDTO saveTeacher(
             TeacherDTO teacherDTO) {
 
@@ -42,9 +54,11 @@ public class TeacherService {
         teacher.setSubject(teacherDTO.getSubject());
         teacher.setSalary(teacherDTO.getSalary());
         teacher.setDepartment(department);
+        teacher.setProfileDetails(teacherDTO.getProfileDetails() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(teacherDTO.getProfileDetails()));
 
         Teacher savedTeacher =
                 teacherRepository.save(teacher);
+        createTeacherAccount(savedTeacher, teacherDTO);
 
         return new TeacherDTO(
                 savedTeacher.getName(),
@@ -54,17 +68,15 @@ public class TeacherService {
     }
 
     // Get All Teachers
-    public List<Teacher> getAllTeachers() {
-        return teacherRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<TeacherResponseDTO> getAllTeachers() {
+        return teacherRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     // Get Teacher By Id
-    public Teacher getTeacherById(Long id) {
-
-        return teacherRepository.findById(id)
-                .orElseThrow(() ->
-                        new TeacherNotFoundException(
-                                "Teacher not found"));
+    @Transactional(readOnly = true)
+    public TeacherResponseDTO getTeacherById(Long id) {
+        return toResponse(findTeacher(id));
     }
 
     // Update Teacher
@@ -89,6 +101,7 @@ public class TeacherService {
         teacher.setSubject(teacherDTO.getSubject());
         teacher.setSalary(teacherDTO.getSalary());
         teacher.setDepartment(department);
+        teacher.setProfileDetails(teacherDTO.getProfileDetails() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(teacherDTO.getProfileDetails()));
 
         Teacher updatedTeacher =
                 teacherRepository.save(teacher);
@@ -102,14 +115,7 @@ public class TeacherService {
 
     // Delete Teacher
     public void deleteTeacher(Long id) {
-
-        Teacher teacher =
-                teacherRepository.findById(id)
-                        .orElseThrow(() ->
-                                new TeacherNotFoundException(
-                                        "Teacher not found"));
-
-        teacherRepository.delete(teacher);
+        teacherRepository.delete(findTeacher(id));
     }
 
     // Search by Name
@@ -145,5 +151,27 @@ public class TeacherService {
             Long departmentId) {
 
         return teacherRepository.findByDepartmentId(departmentId);
+    }
+
+    private Teacher findTeacher(Long id) {
+        return teacherRepository.findById(id).orElseThrow(() -> new TeacherNotFoundException("Teacher not found"));
+    }
+
+    private TeacherResponseDTO toResponse(Teacher teacher) {
+        return new TeacherResponseDTO(teacher.getId(), teacher.getName(), teacher.getSubject(), teacher.getSalary(),
+                teacher.getDepartment().getId(), teacher.getDepartment().getName(), teacher.getUsername(),
+                teacher.getProfileDetails() == null ? java.util.Map.of() : java.util.Map.copyOf(teacher.getProfileDetails()));
+    }
+
+    private void createTeacherAccount(Teacher teacher, TeacherDTO request) {
+        if (request.getPassword() == null || request.getPassword().isBlank()) return;
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new IllegalArgumentException("Username is required when creating a teacher account");
+        }
+        if (userRepository.findByUsername(request.getUsername().trim()).isPresent()) {
+            throw new DuplicateResourceException("Username already exists");
+        }
+        teacher.setUsername(request.getUsername().trim());
+        userRepository.save(new User(request.getUsername().trim(), passwordEncoder.encode(request.getPassword()), Role.TEACHER));
     }
 }

@@ -1,8 +1,10 @@
 export interface DepartmentRecord {
   id: number;
   name: string;
-  students?: unknown[] | null;
-  teachers?: unknown[] | null;
+  studentCount: number;
+  teacherCount: number;
+  studentNames?: string[];
+  teacherNames?: string[];
 }
 
 export interface DepartmentFormValues {
@@ -18,4 +20,6 @@ export interface DepartmentRow {
   name: string;
   studentCount: number;
   teacherCount: number;
+  studentNames: string[];
+  teacherNames: string[];
 }

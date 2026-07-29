@@ -1,44 +1,39 @@
-export interface StudentDepartmentSummary {
-  id: number;
-  name: string;
-}
-
-export interface StudentRecord {
-  id: number;
-  name: string;
-  age: number;
-  department?: StudentDepartmentSummary | null;
-}
-
-export interface StudentPageResponse {
-  content: StudentRecord[];
-  totalPages: number;
-  totalElements: number;
-  number: number;
-  size: number;
-}
-
-export interface StudentFormValues {
-  name: string;
-  age: string;
-  departmentId: string;
-}
-
-export interface StudentPayload {
-  name: string;
-  age: number;
-  departmentId: number;
-}
-
 export interface DepartmentOption {
   id: number;
   name: string;
 }
 
-export interface StudentRow {
-  id: string;
-  name: string;
-  age: number;
-  departmentId: string;
+/** The request body accepted by POST /students and PUT /students/{id}. */
+export interface StudentPayload {
+  admissionNumber: string;
+  rollNumber: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  gender: string;
+  dateOfBirth: string;
+  academicSession: string;
+  admissionDate: string;
+  status: "PENDING" | "ACTIVE" | "INACTIVE" | "SUSPENDED" | "GRADUATED";
+  departmentId: number;
+  courseIds: number[];
+  password?: string;
+  username?: string;
+  admissionDetails: Record<string, string>;
+}
+
+/** The student shape returned by the backend. */
+export interface StudentRow extends StudentPayload {
+  id: number;
+  fullName: string;
   departmentName: string;
+  courseNames?: string[];
+}
+
+export interface StudentPageResponse {
+  content: StudentRow[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
 }

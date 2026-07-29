@@ -1,10 +1,12 @@
 package com.ankit.school_management.service;
 
 import com.ankit.school_management.dto.DepartmentDTO;
+import com.ankit.school_management.dto.DepartmentResponseDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.exception.DepartmentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -36,21 +38,16 @@ public class DepartmentService {
     }
 
     // Get All Departments
-    public List<Department> getAllDepartments() {
-
-        return departmentRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<DepartmentResponseDTO> getAllDepartments() {
+        return departmentRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     // Get Department By Id
-    public Department getDepartmentById(
+    @Transactional(readOnly = true)
+    public DepartmentResponseDTO getDepartmentById(
             Long id) {
-
-        return departmentRepository.findById(id)
-                .orElseThrow(() ->
-                        new DepartmentNotFoundException(
-                                "Department with id "
-                                        + id
-                                        + " not found"));
+        return toResponse(findDepartment(id));
     }
 
     // Update Department
@@ -80,14 +77,19 @@ public class DepartmentService {
     public void deleteDepartment(
             Long id) {
 
-        Department department =
-                departmentRepository.findById(id)
-                        .orElseThrow(() ->
-                                new DepartmentNotFoundException(
-                                        "Department with id "
-                                                + id
-                                                + " not found"));
+        departmentRepository.delete(findDepartment(id));
+    }
 
-        departmentRepository.delete(department);
+    private Department findDepartment(Long id) {
+        return departmentRepository.findById(id).orElseThrow(() ->
+                new DepartmentNotFoundException("Department with id " + id + " not found"));
+    }
+
+    private DepartmentResponseDTO toResponse(Department department) {
+        List<com.ankit.school_management.entity.Student> students = department.getStudents() == null ? List.of() : department.getStudents();
+        List<com.ankit.school_management.entity.Teacher> teachers = department.getTeachers() == null ? List.of() : department.getTeachers();
+        return new DepartmentResponseDTO(department.getId(), department.getName(), students.size(), teachers.size(),
+                students.stream().map(com.ankit.school_management.entity.Student::getFullName).toList(),
+                teachers.stream().map(com.ankit.school_management.entity.Teacher::getName).toList());
     }
 }

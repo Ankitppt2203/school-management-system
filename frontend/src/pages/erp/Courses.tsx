@@ -21,6 +21,7 @@ export default function Courses() {
   const [form, setForm] = useState<CourseFormValues>(empty);
   const [delId, setDelId] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseRow | null>(null);
+  const [courseStudents, setCourseStudents] = useState<Array<{ id: number; admissionNumber: string; fullName: string }>>([]);
 
   const loadCourses = async () => {
     try {
@@ -59,6 +60,8 @@ export default function Courses() {
     try {
       const detailed = await courseApi.getById(course.id);
       setSelectedCourse(detailed);
+      const students = await courseApi.listStudents(course.id);
+      setCourseStudents(students);
       setModal({ mode: 'view', data: detailed });
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to load course', 'error');
@@ -167,7 +170,8 @@ export default function Courses() {
             <h3 className="font-display text-xl font-bold text-ink-900 dark:text-white">{selectedCourse.name}</h3>
             <p className="mt-2 text-sm text-ink-500">ID {selectedCourse.id}</p>
             <div className="mt-4 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">
-              Related students are not returned by the backend JSON because of the course back-reference mapping.
+              <div className="mb-2 font-medium">Enrolled students ({courseStudents.length})</div>
+              {courseStudents.length ? <ul className="space-y-1">{courseStudents.map((student) => <li key={student.id}>{student.fullName} — {student.admissionNumber}</li>)}</ul> : <span>No students are enrolled in this course yet.</span>}
             </div>
           </div>
         )}

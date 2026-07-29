@@ -5,9 +5,11 @@ import com.ankit.school_management.entity.Course;
 import com.ankit.school_management.entity.Student;
 import com.ankit.school_management.exception.CourseNotFoundException;
 import com.ankit.school_management.exception.StudentNotFoundException;
+import com.ankit.school_management.dto.student.StudentCourseSummaryDTO;
 import com.ankit.school_management.repository.CourseRepository;
 import com.ankit.school_management.repository.StudentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -44,6 +46,14 @@ public class CourseService {
     public List<Course> getAllCourses() {
 
         return courseRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentCourseSummaryDTO> getStudentsForCourse(Long courseId) {
+        getCourseById(courseId);
+        return studentRepository.findByCoursesId(courseId).stream()
+                .map(student -> new StudentCourseSummaryDTO(student.getId(), student.getAdmissionNumber(), student.getFullName()))
+                .toList();
     }
 
     // Get Course By Id
@@ -120,7 +130,8 @@ public class CourseService {
                                 new CourseNotFoundException(
                                         "Course not found"));
 
-        student.getCourses().add(course);
+        if (student.getCourses() == null) student.setCourses(new java.util.ArrayList<>());
+        if (!student.getCourses().contains(course)) student.getCourses().add(course);
 
         return studentRepository.save(student);
     }

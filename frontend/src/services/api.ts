@@ -49,11 +49,12 @@ api.interceptors.response.use(
       try {
         // Clear authentication data
         localStorage.removeItem('greenwood_auth');
+        localStorage.removeItem('token');
 
         // Redirect to login if on a protected route
         if (window.location.pathname.startsWith('/app')) {
           console.info('Session expired. Redirecting to login.');
-          window.location.href = '/app/login';
+          window.location.href = '/login';
         }
       } finally {
         isRefreshing = false;

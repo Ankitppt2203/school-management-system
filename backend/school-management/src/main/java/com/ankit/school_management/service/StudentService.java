@@ -4,11 +4,17 @@ import com.ankit.school_management.dto.student.StudentRequestDTO;
 import com.ankit.school_management.dto.student.StudentResponseDTO;
 import com.ankit.school_management.entity.Department;
 import com.ankit.school_management.entity.Student;
+import com.ankit.school_management.entity.Course;
+import com.ankit.school_management.entity.Role;
+import com.ankit.school_management.entity.User;
 import com.ankit.school_management.exception.DepartmentNotFoundException;
 import com.ankit.school_management.exception.DuplicateResourceException;
 import com.ankit.school_management.exception.StudentNotFoundException;
 import com.ankit.school_management.repository.DepartmentRepository;
 import com.ankit.school_management.repository.StudentRepository;
+import com.ankit.school_management.repository.CourseRepository;
+import com.ankit.school_management.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,10 +33,17 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
+    private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public StudentService(StudentRepository studentRepository, DepartmentRepository departmentRepository) {
+    public StudentService(StudentRepository studentRepository, DepartmentRepository departmentRepository,
+                          CourseRepository courseRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.studentRepository = studentRepository;
         this.departmentRepository = departmentRepository;
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Page<StudentResponseDTO> getStudents(int page, int size, String sortBy, String direction) {
@@ -51,7 +64,9 @@ public class StudentService {
         validateUniqueFields(request, null);
         Student student = new Student();
         applyRequest(student, request, findDepartment(request.getDepartmentId()));
-        return toResponse(studentRepository.save(student));
+        Student saved = studentRepository.save(student);
+        createStudentAccount(saved, request.getUsername(), request.getPassword());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -100,7 +115,25 @@ public class StudentService {
         student.setAcademicSession(request.getAcademicSession().trim());
         student.setAdmissionDate(request.getAdmissionDate());
         student.setStatus(request.getStatus() == null || request.getStatus().isBlank() ? "ACTIVE" : request.getStatus().trim());
+        if (request.getUsername() != null && !request.getUsername().isBlank()) student.setUsername(request.getUsername().trim());
         student.setDepartment(department);
+        // Mutate managed collections in place. Replacing them causes Hibernate to
+        // reinsert existing many-to-many/detail rows and can violate unique keys.
+        java.util.List<Course> selectedCourses = findCourses(request.getCourseIds());
+        if (student.getCourses() == null) {
+            student.setCourses(new java.util.ArrayList<>(selectedCourses));
+        } else {
+            student.getCourses().clear();
+            student.getCourses().addAll(selectedCourses);
+        }
+        java.util.Map<String, String> details = request.getAdmissionDetails() == null
+                ? java.util.Map.of() : request.getAdmissionDetails();
+        if (student.getAdmissionDetails() == null) {
+            student.setAdmissionDetails(new java.util.HashMap<>(details));
+        } else {
+            student.getAdmissionDetails().clear();
+            student.getAdmissionDetails().putAll(details);
+        }
     }
 
     private StudentResponseDTO toResponse(Student student) {
@@ -119,8 +152,33 @@ public class StudentService {
         response.setStatus(student.getStatus());
         response.setDepartmentId(student.getDepartment().getId());
         response.setDepartmentName(student.getDepartment().getName());
+        java.util.List<Course> courses = student.getCourses() == null ? java.util.List.of() : student.getCourses();
+        response.setCourseIds(courses.stream().map(Course::getId).toList());
+        response.setCourseNames(courses.stream().map(Course::getName).toList());
+        response.setUsername(student.getUsername());
+        response.setAdmissionDetails(student.getAdmissionDetails() == null ? java.util.Map.of() : java.util.Map.copyOf(student.getAdmissionDetails()));
         return response;
     }
+
+    private java.util.List<Course> findCourses(java.util.List<Long> courseIds) {
+        if (courseIds == null || courseIds.isEmpty()) return new java.util.ArrayList<>();
+        java.util.List<Course> courses = courseRepository.findAllById(courseIds);
+        if (courses.size() != courseIds.stream().distinct().count()) {
+            throw new com.ankit.school_management.exception.CourseNotFoundException("One or more selected courses do not exist");
+        }
+        return new java.util.ArrayList<>(courses);
+    }
+
+    private void createStudentAccount(Student student, String requestedUsername, String password) {
+        if (password == null || password.isBlank()) return;
+        String username = requestedUsername == null || requestedUsername.isBlank() ? student.getAdmissionNumber() : requestedUsername.trim();
+        student.setUsername(username);
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new DuplicateResourceException("An account already exists for admission number " + username);
+        }
+        userRepository.save(new User(username, passwordEncoder.encode(password), Role.STUDENT));
+    }
+
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
