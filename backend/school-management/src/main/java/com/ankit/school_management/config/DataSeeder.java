@@ -14,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class DataSeeder {
 
     @Bean
-    @Profile("dev")
     CommandLineRunner seedDevelopmentUsers(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
