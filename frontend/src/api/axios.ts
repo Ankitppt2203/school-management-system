@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -25,11 +25,13 @@ api.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       localStorage.removeItem("greenwood_auth");
-      localStorage.removeItem("token"); // Remove the legacy key left by earlier app versions.
-      if (window.location.pathname.startsWith("/app")) window.location.href = "/login";
+      localStorage.removeItem("token");
+      if (window.location.pathname.startsWith("/app")) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
-  },
+  }
 );
 
 export default api;
