@@ -105,17 +105,17 @@ export default function Login() {
 
     if (r.id === "admin") {
         setEmail("admin");
-        setPassword("admin123");
+        setPassword("Admin@123");
     }
 
     if (r.id === "teacher") {
         setEmail("teacher");
-        setPassword("teacher123");
+        setPassword("Teacher@123");
     }
 
     if (r.id === "student") {
         setEmail("student");
-        setPassword("student123");
+        setPassword("Student@123");
     }
 }}
                 className={`p-3 rounded-xl border text-center transition ${role === r.id ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30 ring-2 ring-brand-500/30' : 'border-ink-200 dark:border-ink-700 hover:border-brand-300'}`}
