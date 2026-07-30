@@ -17,7 +17,7 @@ export default function Login() {
   const nav = useNavigate();
   const [role, setRole] = useState<Role>('admin');
   const [email, setEmail] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('Admin@123');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
