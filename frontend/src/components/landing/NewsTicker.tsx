@@ -4,7 +4,7 @@ import { news } from '../../data/mock';
 export function NewsTicker() {
   const items = [...news, ...news];
   return (
-    <div className="bg-ink-900 dark:bg-ink-950 text-white overflow-hidden">
+    <div className="mt-[72px] overflow-hidden bg-ink-900 text-white dark:bg-ink-950">
       <div className="container-px flex items-center gap-4 py-2.5">
         <span className="flex items-center gap-1.5 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-bold uppercase tracking-wide shrink-0">
           <Newspaper className="h-3.5 w-3.5" /> Latest
