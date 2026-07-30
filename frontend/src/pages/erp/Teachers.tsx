@@ -281,6 +281,53 @@ export default function Teachers() {
 }
 
 function TeacherProfileFields({ details, onChange }: { details: Record<string, string>; onChange: (key: string, value: string) => void }) {
-  const fields = [['employeeId', 'Employee ID'], ['dateOfBirth', 'Date of Birth'], ['gender', 'Gender'], ['phoneNumber', 'Phone Number'], ['emailAddress', 'Email Address'], ['address', 'Address'], ['qualification', 'Qualification'], ['yearsOfExperience', 'Years of Experience'], ['dateOfJoining', 'Date of Joining'], ['employmentType', 'Employment Type (Full-Time / Part-Time)']];
-  return <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4 rounded-xl border p-4"><div className="sm:col-span-2 font-medium">Professional profile</div>{fields.map(([key, label]) => <div key={key}><label className="label">{label}</label><input type={key.includes('Date') ? 'date' : key === 'emailAddress' ? 'email' : 'text'} value={details[key] ?? ''} onChange={(event) => onChange(key, event.target.value)} className="input" /></div>)}</div>;
+  const sections = [
+    {
+      title: 'Personal information',
+      fields: [
+        ['employeeId', 'Employee ID'], ['dateOfBirth', 'Date of Birth', 'date'], ['gender', 'Gender'],
+        ['maritalStatus', 'Marital Status'], ['nationality', 'Nationality'], ['bloodGroup', 'Blood Group'],
+        ['profilePhotoUrl', 'Profile Photo URL'],
+      ],
+    },
+    {
+      title: 'Contact & address',
+      fields: [
+        ['phoneNumber', 'Phone Number', 'tel'], ['alternatePhoneNumber', 'Alternate Phone Number', 'tel'],
+        ['emailAddress', 'Email Address', 'email'], ['addressLine1', 'Address Line 1'],
+        ['addressLine2', 'Address Line 2'], ['city', 'City'], ['state', 'State'],
+        ['country', 'Country'], ['pinCode', 'PIN Code'],
+      ],
+    },
+    {
+      title: 'Employment & teaching',
+      fields: [
+        ['dateOfJoining', 'Date of Joining', 'date'], ['employmentType', 'Employment Type'],
+        ['employmentStatus', 'Employment Status'], ['designation', 'Designation'],
+        ['staffCategory', 'Staff Category'], ['workLocation', 'Work Location'],
+        ['yearsOfExperience', 'Years of Experience', 'number'], ['previousEmployer', 'Previous Employer'],
+        ['subjectsTaught', 'Subjects Taught'], ['classesAssigned', 'Classes Assigned'],
+        ['classTeacherOf', 'Class Teacher Of'], ['employeeCode', 'Employee Code'],
+      ],
+    },
+    {
+      title: 'Qualifications & documents',
+      fields: [
+        ['qualification', 'Highest Qualification'], ['specialization', 'Specialization'],
+        ['university', 'University / Board'], ['yearOfPassing', 'Year of Passing', 'number'],
+        ['certifications', 'Certifications'], ['panNumber', 'PAN Number'], ['aadhaarNumber', 'Aadhaar Number'],
+        ['bankName', 'Bank Name'], ['bankAccountNumber', 'Bank Account Number'], ['ifscCode', 'IFSC Code'],
+      ],
+    },
+    {
+      title: 'Emergency & additional details',
+      fields: [
+        ['emergencyContactName', 'Emergency Contact Name'], ['emergencyContactRelationship', 'Relationship'],
+        ['emergencyContactPhone', 'Emergency Contact Phone', 'tel'], ['medicalConditions', 'Medical Conditions'],
+        ['allergies', 'Allergies'], ['transportRequired', 'School Transport Required'],
+      ],
+    },
+  ] as const;
+
+  return <div className="sm:col-span-2 space-y-5">{sections.map((section) => <fieldset key={section.title} className="rounded-xl border p-4"><legend className="px-2 font-medium">{section.title}</legend><div className="grid gap-4 sm:grid-cols-2">{section.fields.map(([key, label, type]) => <div key={key}><label className="label">{label}</label><input type={type ?? 'text'} value={details[key] ?? ''} onChange={(event) => onChange(key, event.target.value)} className="input" /></div>)}</div></fieldset>)}</div>;
 }

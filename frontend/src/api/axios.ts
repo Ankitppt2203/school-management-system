@@ -1,7 +1,10 @@
 import axios from "axios";
 
+// Keep this client usable in local development even when no .env file exists.
+// Without the fallback, requests such as /students go to the Vite server
+// instead of the Spring Boot API and the Students page fails to load.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
   headers: {
     "Content-Type": "application/json",
   },

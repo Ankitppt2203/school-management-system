@@ -54,7 +54,7 @@ public class TeacherService {
         teacher.setSubject(teacherDTO.getSubject());
         teacher.setSalary(teacherDTO.getSalary());
         teacher.setDepartment(department);
-        teacher.setProfileDetails(teacherDTO.getProfileDetails() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(teacherDTO.getProfileDetails()));
+        applyProfileDetails(teacher, teacherDTO.getProfileDetails());
 
         Teacher savedTeacher =
                 teacherRepository.save(teacher);
@@ -101,7 +101,7 @@ public class TeacherService {
         teacher.setSubject(teacherDTO.getSubject());
         teacher.setSalary(teacherDTO.getSalary());
         teacher.setDepartment(department);
-        teacher.setProfileDetails(teacherDTO.getProfileDetails() == null ? new java.util.HashMap<>() : new java.util.HashMap<>(teacherDTO.getProfileDetails()));
+        applyProfileDetails(teacher, teacherDTO.getProfileDetails());
 
         Teacher updatedTeacher =
                 teacherRepository.save(teacher);
@@ -161,6 +161,20 @@ public class TeacherService {
         return new TeacherResponseDTO(teacher.getId(), teacher.getName(), teacher.getSubject(), teacher.getSalary(),
                 teacher.getDepartment().getId(), teacher.getDepartment().getName(), teacher.getUsername(),
                 teacher.getProfileDetails() == null ? java.util.Map.of() : java.util.Map.copyOf(teacher.getProfileDetails()));
+    }
+
+    /**
+     * Updates the managed element collection in place so every teacher-profile
+     * field submitted from the form is persisted on both create and edit.
+     */
+    private void applyProfileDetails(Teacher teacher, java.util.Map<String, String> profileDetails) {
+        java.util.Map<String, String> details = profileDetails == null ? java.util.Map.of() : profileDetails;
+        if (teacher.getProfileDetails() == null) {
+            teacher.setProfileDetails(new java.util.HashMap<>(details));
+            return;
+        }
+        teacher.getProfileDetails().clear();
+        teacher.getProfileDetails().putAll(details);
     }
 
     private void createTeacherAccount(Teacher teacher, TeacherDTO request) {

@@ -4,7 +4,7 @@ import type { DepartmentOption, StudentPageResponse, StudentPayload, StudentRow 
 import type { DepartmentOption as TeacherDepartmentOption, TeacherPayload, TeacherRecord, TeacherRow } from '../types/teacher';
 import type { DepartmentPayload, DepartmentRecord, DepartmentRow } from '../types/department';
 import type { CoursePayload, CourseRecord, CourseRow } from '../types/course';
-import type { AttendancePayload, AttendanceRecord, AttendanceRow } from '../types/attendance';
+import type { AttendancePayload, AttendanceRecord, AttendanceRow, AttendanceStudent } from '../types/attendance';
 
 // ===============================
 // Generic CRUD Factory
@@ -290,6 +290,10 @@ export const attendanceApi = {
   remove: async (id: string): Promise<void> => {
     await api.delete(`/attendance/${id}`);
   },
+  listDepartmentStudents: async (departmentId: string): Promise<AttendanceStudent[]> => {
+    const response = await api.get<AttendanceStudent[]>('/attendance/roster', { params: { departmentId } });
+    return response.data;
+  },
 };
 
 function mapAttendanceRecord(attendance: AttendanceRecord): AttendanceRow {
@@ -297,8 +301,12 @@ function mapAttendanceRecord(attendance: AttendanceRecord): AttendanceRow {
     id: attendance.id.toString(),
     date: attendance.date,
     status: attendance.status,
-    studentId: attendance.student?.id ? attendance.student.id.toString() : '',
-    studentLabel: attendance.student?.name ?? 'Not returned by API',
+    studentId: attendance.studentId.toString(),
+    studentLabel: `${attendance.firstName} ${attendance.lastName}`.trim(),
+    rollNumber: attendance.rollNumber ?? '—',
+    userId: attendance.userId ?? attendance.studentId.toString(),
+    departmentId: attendance.departmentId.toString(),
+    departmentName: attendance.departmentName,
   };
 }
 

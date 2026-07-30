@@ -1,7 +1,8 @@
 package com.ankit.school_management.controller;
 
 import com.ankit.school_management.dto.AttendanceDTO;
-import com.ankit.school_management.entity.Attendance;
+import com.ankit.school_management.dto.AttendanceResponseDTO;
+import com.ankit.school_management.dto.AttendanceStudentDTO;
 import com.ankit.school_management.entity.AttendanceStatus;
 import com.ankit.school_management.service.AttendanceService;
 import jakarta.validation.Valid;
@@ -25,7 +26,7 @@ public class AttendanceController {
 
     // Create Attendance
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public AttendanceDTO addAttendance(
             @Valid
             @RequestBody AttendanceDTO attendanceDTO) {
@@ -36,7 +37,7 @@ public class AttendanceController {
     // Get All Attendance
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Attendance> getAttendance() {
+    public List<AttendanceResponseDTO> getAttendance() {
 
         return attendanceService.getAllAttendance();
     }
@@ -44,7 +45,7 @@ public class AttendanceController {
     // Get Attendance By Id
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public Attendance getAttendanceById(
+    public AttendanceResponseDTO getAttendanceById(
             @PathVariable Long id) {
 
         return attendanceService.getAttendanceById(id);
@@ -52,7 +53,7 @@ public class AttendanceController {
 
     // Update Attendance
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public AttendanceDTO updateAttendance(
             @PathVariable Long id,
             @Valid
@@ -77,7 +78,7 @@ public class AttendanceController {
     // Get Attendance By Student
     @GetMapping("/student/{studentId}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Attendance> getAttendanceByStudent(
+    public List<AttendanceResponseDTO> getAttendanceByStudent(
             @PathVariable Long studentId) {
 
         return attendanceService.getAttendanceByStudent(studentId);
@@ -86,7 +87,7 @@ public class AttendanceController {
     // Get Attendance By Date
     @GetMapping("/date/{date}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Attendance> getAttendanceByDate(
+    public List<AttendanceResponseDTO> getAttendanceByDate(
             @PathVariable LocalDate date) {
 
         return attendanceService.getAttendanceByDate(date);
@@ -95,7 +96,7 @@ public class AttendanceController {
     // Get Attendance By Status
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Attendance> getAttendanceByStatus(
+    public List<AttendanceResponseDTO> getAttendanceByStatus(
             @PathVariable AttendanceStatus status) {
 
         return attendanceService.getAttendanceByStatus(status);
@@ -104,12 +105,18 @@ public class AttendanceController {
     // Get Attendance By Student and Date
     @GetMapping("/student/{studentId}/date/{date}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public List<Attendance> getAttendanceByStudentAndDate(
+    public List<AttendanceResponseDTO> getAttendanceByStudentAndDate(
             @PathVariable Long studentId,
             @PathVariable LocalDate date) {
 
         return attendanceService.getAttendanceByStudentAndDate(
                 studentId,
                 date);
+    }
+
+    @GetMapping("/roster")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public List<AttendanceStudentDTO> getDepartmentRoster(@RequestParam Long departmentId) {
+        return attendanceService.getStudentsByDepartment(departmentId);
     }
 }

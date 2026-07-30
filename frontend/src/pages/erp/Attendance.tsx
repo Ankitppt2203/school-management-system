@@ -1,47 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Column, DataTable, Pagination, StatusBadge } from '../../components/erp/DataTable';
 import { PageHeader } from '../../components/erp/PageHeader';
 import { Modal } from '../../components/ui/Modal';
-import { ConfirmDialog, toast } from '../../components/ui/Toast';
+import { toast } from '../../components/ui/Toast';
 import { attendanceApi, studentApi } from '../../services';
-import type { AttendanceFormValues, AttendanceRow } from '../../types/attendance';
-import type { StudentRow } from '../../types/student';
-import { Plus, Pencil, Trash2, Eye, Search, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import type { AttendanceFormValues, AttendanceRow, AttendanceStudent } from '../../types/attendance';
+import type { DepartmentOption } from '../../types/student';
+import { Pencil, Search, RefreshCw } from 'lucide-react';
 
-const empty: AttendanceFormValues = {
-  date: new Date().toISOString().slice(0, 10),
-  status: 'PRESENT',
-  studentId: '',
-};
+const today = () => new Date().toISOString().slice(0, 10);
+type AttendanceRosterRow = Omit<AttendanceStudent, 'id'> & { id: string; studentId: number };
 
 export default function Attendance() {
-  const [rows, setRows] = useState<AttendanceRow[]>([]);
-  const [students, setStudents] = useState<StudentRow[]>([]);
+  const { user } = useAuth();
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [students, setStudents] = useState<AttendanceRosterRow[]>([]);
+  const [departmentId, setDepartmentId] = useState('');
+  const [date, setDate] = useState(today);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
+  const [rosterLoading, setRosterLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [modal, setModal] = useState<{ mode: 'add' | 'edit' | 'view'; data: AttendanceRow | null } | null>(null);
-  const [form, setForm] = useState<AttendanceFormValues>(empty);
-  const [delId, setDelId] = useState<string | null>(null);
-  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRow | null>(null);
+  const [editing, setEditing] = useState<AttendanceRow | null>(null);
+  const [form, setForm] = useState<AttendanceFormValues>({ date: today(), status: 'PRESENT', studentId: '' });
+  const canMark = user?.role === 'admin' || user?.role === 'teacher';
 
   const loadAttendance = async () => {
     try {
       setLoading(true);
       setError('');
-
-      const [attendanceRows, studentRows] = await Promise.all([
+      const [records, departmentOptions] = await Promise.all([
         attendanceApi.listAll(),
-        studentApi.listAll(),
+        studentApi.listDepartments(),
       ]);
-
-      setRows(attendanceRows);
-      setStudents(studentRows);
-      setPage(1);
+      setAttendance(records);
+      setDepartments(departmentOptions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load attendance');
     } finally {
@@ -49,70 +47,46 @@ export default function Attendance() {
     }
   };
 
-  useEffect(() => {
-    void loadAttendance();
-  }, []);
-
-  const filtered = useMemo(() => rows.filter((row) => row.date.includes(q) || row.id.includes(q) || row.studentLabel.toLowerCase().includes(q.toLowerCase())), [rows, q]);
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-
-  const present = rows.filter((r) => r.status === 'PRESENT').length;
-  const absent = rows.filter((r) => r.status === 'ABSENT').length;
-
-  const openAdd = () => {
-    setForm(empty);
-    setModal({ mode: 'add', data: null });
-  };
-
-  const openEdit = (row: AttendanceRow) => {
-    setForm({
-      date: row.date,
-      status: row.status,
-      studentId: row.studentId,
-    });
-    setModal({ mode: 'edit', data: row });
-  };
-
-  const openView = async (row: AttendanceRow) => {
+  const loadRoster = async (id: string) => {
+    setStudents([]);
+    setPage(1);
+    if (!id) return;
     try {
-      const detailed = await attendanceApi.getById(row.id);
-      setSelectedAttendance(detailed);
-      setModal({ mode: 'view', data: detailed });
+      setRosterLoading(true);
+      setError('');
+      const roster = await attendanceApi.listDepartmentStudents(id);
+      setStudents(roster.map((student) => ({ ...student, id: student.id.toString(), studentId: student.id })));
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to load attendance record', 'error');
+      setError(err instanceof Error ? err.message : 'Failed to load department students');
+    } finally {
+      setRosterLoading(false);
     }
   };
 
-  const save = async () => {
-    if (!form.date.trim() || !form.status || !form.studentId.trim()) {
-      toast('Date, status, and student are required', 'error');
-      return;
-    }
+  useEffect(() => { void loadAttendance(); }, []);
+  useEffect(() => { void loadRoster(departmentId); }, [departmentId]);
 
-    const payload = {
-      date: form.date,
-      status: form.status,
-      studentId: Number(form.studentId),
-    };
+  const attendanceFor = (studentId: number) => attendance.find((record) => record.studentId === studentId.toString() && record.date === date);
+  const filteredStudents = useMemo(() => {
+    const search = q.trim().toLowerCase();
+    if (!search) return students;
+    return students.filter((student) => `${student.firstName} ${student.lastName} ${student.rollNumber ?? ''} ${student.userId ?? student.id}`.toLowerCase().includes(search));
+  }, [students, q]);
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize));
+  const pagedStudents = filteredStudents.slice((page - 1) * pageSize, page * pageSize);
+  const marked = students.map((student) => attendanceFor(student.studentId)).filter(Boolean) as AttendanceRow[];
+  const present = marked.filter((record) => record.status === 'PRESENT').length;
+  const absent = marked.filter((record) => record.status === 'ABSENT').length;
 
-    if (!Number.isFinite(payload.studentId) || payload.studentId <= 0) {
-      toast('Select a valid student', 'error');
-      return;
-    }
-
+  const mark = async (student: AttendanceRosterRow, status: AttendanceFormValues['status']) => {
+    if (!canMark) return;
+    const existing = attendanceFor(student.studentId);
+    const payload = { date, status, studentId: student.studentId };
     try {
       setSaving(true);
-
-      if (modal?.mode === 'add') {
-        await attendanceApi.create(payload);
-        toast('Attendance added successfully');
-      } else if (modal?.mode === 'edit' && modal.data) {
-        await attendanceApi.update(modal.data.id, payload);
-        toast('Attendance updated successfully');
-      }
-
-      setModal(null);
+      if (existing) await attendanceApi.update(existing.id, payload);
+      else await attendanceApi.create(payload);
+      toast(`${student.firstName} ${student.lastName} marked ${status.toLowerCase()}`);
       await loadAttendance();
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to save attendance', 'error');
@@ -121,142 +95,45 @@ export default function Attendance() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!delId) {
+  const openEdit = (student: AttendanceRosterRow) => {
+    const record = attendanceFor(student.studentId);
+    if (!record) {
+      toast('Mark the student present or absent before editing.', 'error');
       return;
     }
+    setEditing(record);
+    setForm({ date: record.date, status: record.status, studentId: record.studentId });
+  };
 
+  const saveEdit = async () => {
+    if (!editing || !form.date) return;
     try {
-      await attendanceApi.remove(delId);
-      toast('Attendance deleted successfully');
-      setDelId(null);
+      setSaving(true);
+      await attendanceApi.update(editing.id, { date: form.date, status: form.status, studentId: Number(form.studentId) });
+      toast('Attendance updated successfully');
+      setEditing(null);
       await loadAttendance();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to delete attendance', 'error');
+      toast(err instanceof Error ? err.message : 'Failed to update attendance', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const columns: Column<AttendanceRow>[] = [
-    { key: 'date', label: 'Date', render: (row) => <div className="font-semibold text-ink-900 dark:text-white">{row.date}</div> },
-    { key: 'status', label: 'Status', render: (row) => <StatusBadge status={row.status === 'PRESENT' ? 'Present' : 'Absent'} /> },
-    { key: 'studentLabel', label: 'Student', render: (row) => <span>{row.studentLabel}</span> },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row) => (
-        <div className="flex gap-1">
-          <button onClick={() => void openView(row)} className="btn-ghost p-1.5 rounded-lg" title="View"><Eye className="h-4 w-4" /></button>
-          <button onClick={() => openEdit(row)} className="btn-ghost p-1.5 rounded-lg" title="Edit"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => setDelId(row.id)} className="btn-ghost p-1.5 rounded-lg text-rose-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
-        </div>
-      ),
-    },
+  const columns: Column<AttendanceRosterRow>[] = [
+    { key: 'name', label: 'Student', render: (student) => <div><div className="font-semibold text-ink-900 dark:text-white">{student.firstName} {student.lastName}</div><div className="text-xs text-ink-400">Student ID {student.studentId}</div></div> },
+    { key: 'rollNumber', label: 'Roll No.', render: (student) => student.rollNumber || '—' },
+    { key: 'userId', label: 'User ID', render: (student) => student.userId || `Student-${student.studentId}` },
+    { key: 'status', label: 'Status', render: (student) => { const record = attendanceFor(student.studentId); return record ? <StatusBadge status={record.status === 'PRESENT' ? 'Present' : 'Absent'} /> : <span className="text-sm text-ink-400">Not marked</span>; } },
+    { key: 'actions', label: 'Mark attendance', render: (student) => <div className="flex flex-wrap gap-2"><button disabled={!canMark || saving} onClick={() => void mark(student, 'PRESENT')} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">Present</button><button disabled={!canMark || saving} onClick={() => void mark(student, 'ABSENT')} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50">Absent</button><button disabled={!canMark || saving} onClick={() => openEdit(student)} className="btn-secondary !px-3 !py-1.5 text-xs"><Pencil className="h-3.5 w-3.5" /> Edit</button></div> },
   ];
 
-  const studentLabel = (studentId: string) => students.find((student) => student.id === Number(studentId))?.fullName ?? 'Select a student';
-
-  return (
-    <div>
-      <PageHeader
-        title="Attendance"
-        subtitle={loading ? 'Loading attendance...' : 'Manage attendance records'}
-        action={(
-          <div className="flex gap-2">
-            <button onClick={() => void loadAttendance()} className="btn-secondary">
-              <RefreshCw className="h-4 w-4" /> Refresh
-            </button>
-            <button onClick={openAdd} className="btn-primary"><Plus className="h-4 w-4" /> Add Attendance</button>
-          </div>
-        )}
-      />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {[
-          { l: 'Total', v: rows.length, c: 'from-brand-500 to-brand-700' },
-          { l: 'Present', v: present, c: 'from-emerald-500 to-teal-600' },
-          { l: 'Absent', v: absent, c: 'from-rose-500 to-pink-600' },
-        ].map((s) => (
-          <motion.div key={s.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-5">
-            <div className={`font-display text-3xl font-bold bg-gradient-to-br ${s.c} bg-clip-text text-transparent`}>{s.v}</div>
-            <div className="text-sm text-ink-500">{s.l}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative w-fit">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
-          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search attendance..." className="input !py-2 pl-9 !w-64" />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-ink-500">Rows per page</label>
-          <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="input !py-2 !w-28">
-            {[5, 8, 10, 20].map((size) => <option key={size} value={size}>{size}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {error ? <div className="card p-4 mb-4 text-rose-600">{error}</div> : null}
-
-      <DataTable columns={columns} rows={paged} loading={loading} empty="No attendance records found." />
-      <Pagination page={page} total={totalPages} onChange={setPage} />
-
-      <Modal open={!!modal && modal.mode !== 'view'} onClose={() => setModal(null)} title={modal?.mode === 'add' ? 'Add Attendance' : 'Edit Attendance'} size="lg">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Date</label>
-            <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="input" />
-          </div>
-          <div>
-            <label className="label">Status</label>
-            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as AttendanceFormValues['status'] })} className="input">
-              <option value="PRESENT">PRESENT</option>
-              <option value="ABSENT">ABSENT</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label">Student</label>
-            <select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} className="input">
-              <option value="">Select a student</option>
-              {students.map((student) => <option key={student.id} value={student.id}>{student.fullName} (ID {student.id})</option>)}
-            </select>
-          </div>
-          <div className="sm:col-span-2 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">
-            Selected student: {studentLabel(form.studentId)}
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-          <button className="btn-primary" onClick={() => void save()} disabled={saving}>{saving ? 'Saving...' : modal?.mode === 'add' ? 'Add Attendance' : 'Save Changes'}</button>
-        </div>
-      </Modal>
-
-      <Modal open={!!modal && modal.mode === 'view'} onClose={() => setModal(null)} title="Attendance Details" size="md">
-        {selectedAttendance && (
-          <div>
-            <h3 className="font-display text-xl font-bold text-ink-900 dark:text-white">Attendance Record</h3>
-            <p className="mt-2 text-sm text-ink-500">ID {selectedAttendance.id}</p>
-            <div className="grid grid-cols-2 gap-3 mt-6 text-left">
-              {[
-                ['Date', selectedAttendance.date],
-                ['Status', selectedAttendance.status],
-                ['Student', selectedAttendance.studentLabel],
-                ['Student ID', selectedAttendance.studentId || 'Not returned by API'],
-              ].map(([label, value]) => (
-                <div key={label} className="bg-ink-50 dark:bg-ink-800/50 rounded-xl p-3">
-                  <div className="text-xs text-ink-400">{label}</div>
-                  <div className="text-sm font-medium text-ink-800 dark:text-ink-100">{value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-              Backend attendance entities do not serialize the student relation, so list/get responses omit the student name and ID unless the API changes.
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <ConfirmDialog open={!!delId} onClose={() => setDelId(null)} onConfirm={confirmDelete} message="Delete this attendance record?" />
-    </div>
-  );
+  return <div>
+    <PageHeader title="Attendance" subtitle="Select a department to mark its students' attendance" action={<button onClick={() => void loadAttendance()} className="btn-secondary"><RefreshCw className="h-4 w-4" /> Refresh</button>} />
+    <div className="mb-5 grid gap-4 md:grid-cols-4"><div><label className="label">Department</label><select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} className="input"><option value="">Select a department</option>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></div><div><label className="label">Attendance date</label><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="input" /></div><div className="card p-3"><div className="text-2xl font-bold text-emerald-600">{present}</div><div className="text-sm text-ink-500">Present</div></div><div className="card p-3"><div className="text-2xl font-bold text-rose-600">{absent}</div><div className="text-sm text-ink-500">Absent</div></div></div>
+    <div className="mb-4 flex flex-wrap items-center gap-3"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" /><input value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} placeholder="Search student, roll no., user ID" className="input !w-72 !py-2 pl-9" /></div><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="input !w-24 !py-2">{[5, 10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}</select></div>
+    {error && <div className="card mb-4 p-4 text-rose-600">{error}</div>}
+    {!departmentId ? <div className="card p-8 text-center text-ink-500">Choose a department to show its students.</div> : <><DataTable columns={columns} rows={pagedStudents} loading={loading || rosterLoading} empty="No students found in this department." /><Pagination page={page} total={totalPages} onChange={setPage} /></>}
+    <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Attendance" size="md"><div className="space-y-4"><div><label className="label">Date</label><input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} className="input" /></div><div><label className="label">Status</label><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AttendanceFormValues['status'] })} className="input"><option value="PRESENT">Present</option><option value="ABSENT">Absent</option></select></div></div><div className="mt-6 flex justify-end gap-3"><button onClick={() => setEditing(null)} className="btn-secondary">Cancel</button><button disabled={saving} onClick={() => void saveEdit()} className="btn-primary">{saving ? 'Saving...' : 'Save Changes'}</button></div></Modal>
+  </div>;
 }
