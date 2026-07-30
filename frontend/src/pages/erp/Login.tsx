@@ -105,7 +105,7 @@ export default function Login() {
 
     if (r.id === "admin") {
         setEmail("admin");
-        setPassword("admin123");
+        setPassword("Admin@123");
     }
 
     if (r.id === "teacher") {
