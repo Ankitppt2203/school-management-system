@@ -86,11 +86,11 @@ const Students = () => {
       <div className="flex items-center justify-between">
 
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
             Students
           </h1>
 
-          <p className="text-gray-500 mt-1">
+          <p className="mt-1 text-gray-500 dark:text-ink-400">
             Manage all students in your school.
           </p>
         </div>
@@ -107,7 +107,7 @@ const Students = () => {
 
       {/* Search */}
 
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="rounded-lg bg-white p-4 shadow dark:bg-ink-900 dark:ring-1 dark:ring-ink-800">
 
         <div className="relative w-full md:w-96">
 
@@ -121,7 +121,7 @@ const Students = () => {
             placeholder="Search Student..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full rounded-lg border border-ink-200 bg-white py-2 pl-10 pr-4 text-ink-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:placeholder:text-ink-400"
           />
 
         </div>
@@ -130,11 +130,11 @@ const Students = () => {
 
       {/* Student Table */}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-ink-900 dark:ring-1 dark:ring-ink-800">
 
         {loading ? (
 
-          <div className="p-10 text-center">
+          <div className="p-10 text-center text-ink-700 dark:text-ink-200">
             Loading...
           </div>
 
@@ -142,7 +142,7 @@ const Students = () => {
 
           <table className="w-full">
 
-            <thead className="bg-gray-100">
+            <thead className="bg-gray-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200">
 
               <tr>
 
@@ -163,7 +163,7 @@ const Students = () => {
 
                 <tr
                   key={student.id}
-                  className="border-t hover:bg-gray-50"
+                  className="border-t border-ink-100 text-ink-800 hover:bg-gray-50 dark:border-ink-800 dark:text-ink-200 dark:hover:bg-ink-800/70"
                 >
 
                   <td className="p-3">
@@ -185,7 +185,7 @@ const Students = () => {
                   </td>
 
                   <td className="p-3">
-                    <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-sm">
+                    <span className="rounded bg-green-100 px-2 py-1 text-sm text-green-700 dark:bg-green-900/40 dark:text-green-300">
                       {student.status}
                     </span>
                   </td>
@@ -194,15 +194,15 @@ const Students = () => {
 
                     <div className="flex justify-center gap-2">
 
-                      <button onClick={() => setViewingStudent(student)} className="p-2 rounded hover:bg-gray-200" title="View student">
+                      <button onClick={() => setViewingStudent(student)} className="rounded p-2 hover:bg-gray-200 dark:hover:bg-ink-700" title="View student">
                         <Eye size={18} />
                       </button>
 
-                      <button onClick={() => { setEditingStudent(student); setOpenModal(true); }} className="p-2 rounded hover:bg-blue-100 text-blue-600" title="Edit student">
+                      <button onClick={() => { setEditingStudent(student); setOpenModal(true); }} className="rounded p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Edit student">
                         <Edit size={18} />
                       </button>
 
-                      <button onClick={() => void removeStudent(student)} className="p-2 rounded hover:bg-red-100 text-red-600" title="Delete student">
+                      <button onClick={() => void removeStudent(student)} className="rounded p-2 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30" title="Delete student">
                         <Trash2 size={18} />
                       </button>
 
@@ -220,7 +220,7 @@ const Students = () => {
 
                   <td
                     colSpan={6}
-                    className="text-center py-10 text-gray-500"
+                    className="py-10 text-center text-gray-500 dark:text-ink-400"
                   >
                     No students found.
                   </td>
@@ -239,12 +239,12 @@ const Students = () => {
 
       {/* Pagination */}
 
-      <div className="flex justify-end items-center gap-2">
+      <div className="flex items-center justify-end gap-2 text-ink-700 dark:text-ink-200">
 
         <button
           disabled={page === 0}
           onClick={() => setPage(page - 1)}
-          className="px-4 py-2 border rounded disabled:opacity-50"
+          className="rounded border border-ink-200 px-4 py-2 disabled:opacity-50 dark:border-ink-700 dark:hover:bg-ink-800"
         >
           Previous
         </button>
@@ -256,7 +256,7 @@ const Students = () => {
         <button
           disabled={page + 1 >= totalPages}
           onClick={() => setPage(page + 1)}
-          className="px-4 py-2 border rounded disabled:opacity-50"
+          className="rounded border border-ink-200 px-4 py-2 disabled:opacity-50 dark:border-ink-700 dark:hover:bg-ink-800"
         >
           Next
         </button>
