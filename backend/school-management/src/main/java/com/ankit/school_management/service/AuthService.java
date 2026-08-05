@@ -4,11 +4,13 @@ import com.ankit.school_management.dto.ChangePasswordRequest;
 import com.ankit.school_management.dto.LoginRequest;
 import com.ankit.school_management.dto.LoginResponse;
 import com.ankit.school_management.entity.User;
+import com.ankit.school_management.entity.Role;
 import com.ankit.school_management.repository.UserRepository;
 import com.ankit.school_management.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.ankit.school_management.dto.ResetPasswordRequest;
+import com.ankit.school_management.dto.AccountProfileResponse;
 
 @Service
 public class AuthService {
@@ -16,15 +18,21 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final com.ankit.school_management.repository.StudentRepository studentRepository;
+    private final com.ankit.school_management.repository.TeacherRepository teacherRepository;
 
     public AuthService(
             UserRepository userRepository,
             JwtService jwtService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            com.ankit.school_management.repository.StudentRepository studentRepository,
+            com.ankit.school_management.repository.TeacherRepository teacherRepository) {
 
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+        this.studentRepository = studentRepository;
+        this.teacherRepository = teacherRepository;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -94,4 +102,22 @@ public class AuthService {
 
     userRepository.save(user);
 }
+
+    public AccountProfileResponse getAccountProfile(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getRole() == Role.STUDENT) {
+            return studentRepository.findByUsername(username)
+                    .map(student -> new AccountProfileResponse(username, student.getFullName(),
+                            student.getAdmissionDetails().get("profilePhotoUrl"), user.getRole().name()))
+                    .orElse(new AccountProfileResponse(username, username, null, user.getRole().name()));
+        }
+        if (user.getRole() == Role.TEACHER) {
+            return teacherRepository.findByUsername(username)
+                    .map(teacher -> new AccountProfileResponse(username, teacher.getName(),
+                            teacher.getProfileDetails().get("profilePhotoUrl"), user.getRole().name()))
+                    .orElse(new AccountProfileResponse(username, username, null, user.getRole().name()));
+        }
+        return new AccountProfileResponse(username, username, null, user.getRole().name());
+    }
 }

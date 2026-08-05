@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../services";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function ChangePassword() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showPasswords, setShowPasswords] = useState({ current: false, next: false, confirm: false });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,29 +59,9 @@ export default function ChangePassword() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <input
-            type="password"
-            placeholder="Current Password"
-            className="input w-full"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="New Password"
-            className="input w-full"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            className="input w-full"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+          <PasswordField placeholder="Current Password" value={currentPassword} visible={showPasswords.current} onChange={setCurrentPassword} onToggle={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })} />
+          <PasswordField placeholder="New Password" value={newPassword} visible={showPasswords.next} onChange={setNewPassword} onToggle={() => setShowPasswords({ ...showPasswords, next: !showPasswords.next })} />
+          <PasswordField placeholder="Confirm Password" value={confirmPassword} visible={showPasswords.confirm} onChange={setConfirmPassword} onToggle={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })} />
 
           {error && (
             <p className="text-red-500 text-sm">
@@ -105,4 +87,8 @@ export default function ChangePassword() {
       </div>
     </div>
   );
+}
+
+function PasswordField({ placeholder, value, visible, onChange, onToggle }: { placeholder: string; value: string; visible: boolean; onChange: (value: string) => void; onToggle: () => void }) {
+  return <div className="relative"><input required type={visible ? "text" : "password"} placeholder={placeholder} className="input w-full pr-10" value={value} onChange={(e) => onChange(e.target.value)} /><button type="button" aria-label={visible ? `Hide ${placeholder}` : `Show ${placeholder}`} onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>;
 }

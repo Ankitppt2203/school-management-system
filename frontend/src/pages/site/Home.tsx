@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Hero } from '../../components/landing/Hero';
@@ -11,8 +12,28 @@ import { EventsPreview } from '../../components/landing/EventsPreview';
 import { stats, whyChoose, academics, achievements, departments, faculty } from '../../data/mock';
 import { img } from '../../lib/images';
 import { ArrowRight, Quote, Target, Eye, Heart, BookOpen, Award } from 'lucide-react';
+import { toast } from '../../components/ui/Toast';
+import { enquiryApi, type EnquiryPayload } from '../../services';
 
 export default function Home() {
+  const [enquiry, setEnquiry] = useState<EnquiryPayload>({ name: '', email: '', phone: '', interestedIn: '', message: '' });
+  const [sendingEnquiry, setSendingEnquiry] = useState(false);
+
+  const submitEnquiry = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      setSendingEnquiry(true);
+      await enquiryApi.submit(enquiry);
+      setEnquiry({ name: '', email: '', phone: '', interestedIn: '', message: '' });
+      toast('Thank you! Your enquiry has been submitted.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit your enquiry. Please try again.';
+      toast(message, 'error');
+    } finally {
+      setSendingEnquiry(false);
+    }
+  };
+
   return (
     <>
       <Hero />
@@ -193,6 +214,60 @@ export default function Home() {
       <GalleryPreview />
       <EventsPreview />
       <Testimonials />
+
+      {/* Enquiry */}
+      <section className="bg-ink-100/60 py-20 dark:bg-ink-900/40">
+        <div className="container-px grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <SectionHeading
+              center={false}
+              eyebrow="Enquire Today"
+              title="Let us help plan your child's future"
+              subtitle="Tell us what you would like to know about Greenwood. Our admissions team will get back to you shortly."
+            />
+            <div className="mt-7 space-y-4 text-sm text-ink-600 dark:text-ink-300">
+              <p><span className="font-semibold text-brand-600 dark:text-brand-400">Admissions guidance:</span> classes, eligibility and application support.</p>
+              <p><span className="font-semibold text-brand-600 dark:text-brand-400">School visits:</span> arrange a convenient time to see our campus.</p>
+            </div>
+          </div>
+          <Reveal>
+            <form onSubmit={submitEnquiry} className="card p-6 sm:p-8">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label">Full name</label>
+                  <input required value={enquiry.name} onChange={(e) => setEnquiry({ ...enquiry, name: e.target.value })} className="input" placeholder="Your name" />
+                </div>
+                <div>
+                  <label className="label">Phone number</label>
+                  <input required type="tel" value={enquiry.phone} onChange={(e) => setEnquiry({ ...enquiry, phone: e.target.value })} className="input" placeholder="Your phone number" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="label">Email address</label>
+                <input required type="email" value={enquiry.email} onChange={(e) => setEnquiry({ ...enquiry, email: e.target.value })} className="input" placeholder="you@example.com" />
+              </div>
+              <div className="mt-4">
+                <label className="label">Interested in <span className="font-normal text-ink-400">(optional)</span></label>
+                <select value={enquiry.interestedIn} onChange={(e) => setEnquiry({ ...enquiry, interestedIn: e.target.value })} className="input">
+                  <option value="">Select an option</option>
+                  <option>Admissions</option>
+                  <option>School visit</option>
+                  <option>Academics</option>
+                  <option>Fees</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div className="mt-4">
+                <label className="label">Your message</label>
+                <textarea required value={enquiry.message} onChange={(e) => setEnquiry({ ...enquiry, message: e.target.value })} className="input min-h-28 resize-y" placeholder="How can we help?" />
+              </div>
+              <button disabled={sendingEnquiry} className="btn-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-60">
+                {sendingEnquiry ? 'Submitting...' : 'Submit Enquiry'} <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
+          </Reveal>
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="container-px py-20">

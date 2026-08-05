@@ -51,7 +51,27 @@ export default function StudentForm({ onClose, onSuccess, student }: StudentForm
   const isEditing = Boolean(student);
 
   useEffect(() => {
-    if (student) setFormData({ ...student, password: "", admissionDetails: student.admissionDetails ?? {} });
+    if (student) {
+      setFormData({ ...student, password: "", admissionDetails: student.admissionDetails ?? {} });
+      setConfirmPassword("");
+      setError("");
+      return;
+    }
+
+    setFormData(initialForm);
+    setConfirmPassword("");
+    setError("");
+
+    const loadNextAdmissionNumber = async () => {
+      try {
+        const nextAdmissionNumber = await api.get<string>("/students/next-admission-number");
+        setFormData((current) => current.admissionNumber ? current : { ...current, admissionNumber: nextAdmissionNumber.data });
+      } catch {
+        setFormData((current) => current.admissionNumber ? current : { ...current, admissionNumber: "GPS01" });
+      }
+    };
+
+    void loadNextAdmissionNumber();
   }, [student]);
 
   useEffect(() => {
@@ -85,6 +105,14 @@ export default function StudentForm({ onClose, onSuccess, student }: StudentForm
   const handleDetailChange = (key: string, value: string) => {
     setFormData((current) => ({ ...current, admissionDetails: { ...current.admissionDetails, [key]: value } }));
   };
+  const selectProfilePhoto = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please select an image file."); return; }
+    if (file.size > 300 * 1024) { setError("Profile photo must be 300 KB or smaller."); return; }
+    const reader = new FileReader();
+    reader.onload = () => handleDetailChange("profilePhotoUrl", String(reader.result));
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -117,7 +145,7 @@ export default function StudentForm({ onClose, onSuccess, student }: StudentForm
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input label="Admission Number" name="admissionNumber" placeholder="ADM-2026-001" value={formData.admissionNumber} onChange={handleChange} required />
+        <Input label="Admission Number" name="admissionNumber" placeholder="GPS01" value={formData.admissionNumber} onChange={handleChange} required readOnly={!isEditing} />
         <Input label="Roll Number" name="rollNumber" value={formData.rollNumber} onChange={handleChange} />
         <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
         <Input label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} />
@@ -132,6 +160,7 @@ export default function StudentForm({ onClose, onSuccess, student }: StudentForm
         <label><span className="label">Admission Status</span><select name="status" value={formData.status} onChange={handleChange} className="input"><option value="PENDING">Pending</option><option value="ACTIVE">Active</option><option value="SUSPENDED">Suspended</option><option value="GRADUATED">Graduated</option><option value="INACTIVE">Inactive</option></select></label>
       </div>
       <AdmissionDetails details={formData.admissionDetails} onChange={handleDetailChange} />
+      <div><span className="label">Student Profile Photo</span><input type="file" accept="image/*" onChange={(event) => selectProfilePhoto(event.target.files?.[0])} className="input" />{formData.admissionDetails.profilePhotoUrl && <img src={formData.admissionDetails.profilePhotoUrl} alt="Student profile preview" className="mt-3 h-20 w-20 rounded-xl object-cover" />}</div>
       <div className="flex justify-end gap-3 pt-2">
         {onClose && <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>}
         <button type="submit" className="btn-primary" disabled={saving || loadingDepartments}>{saving ? "Saving..." : isEditing ? "Save Changes" : "Create Student Account & Add"}</button>
@@ -141,7 +170,7 @@ export default function StudentForm({ onClose, onSuccess, student }: StudentForm
 }
 
 function Input({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return <label><span className="label">{label}{props.required ? " *" : ""}</span><input {...props} className="input" /></label>;
+  return <label><span className="label">{label}{props.required ? " *" : ""}</span><input {...props} className={`input ${props.readOnly ? "bg-gray-50 text-gray-600" : ""}`} /></label>;
 }
 
 function AdmissionDetails({ details, onChange }: { details: Record<string, string>; onChange: (key: string, value: string) => void }) {

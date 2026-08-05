@@ -5,16 +5,25 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Icon } from '../ui/Icon';
 import { GraduationCap, Menu, X, Sun, Moon, LogOut, Bell, ChevronDown, Home } from 'lucide-react';
+import type { Role } from '../../types';
 
-const nav = [
+interface NavItem {
+  label: string;
+  to: string;
+  icon: string;
+  roles?: Role[];
+}
+
+const nav: NavItem[] = [
   { label: 'Dashboard', to: '/app', icon: 'LayoutDashboard' },
-  { label: 'Students', to: '/app/students', icon: 'Users' },
-  { label: 'Teachers', to: '/app/teachers', icon: 'GraduationCap' },
-  { label: 'Departments', to: '/app/departments', icon: 'Building2' },
-  { label: 'Courses', to: '/app/courses', icon: 'BookOpen' },
+  { label: 'Students', to: '/app/students', icon: 'Users', roles: ['admin'] },
+  { label: 'Teachers', to: '/app/teachers', icon: 'GraduationCap', roles: ['admin'] },
+  { label: 'Departments', to: '/app/departments', icon: 'Building2', roles: ['admin', 'teacher'] },
+  { label: 'Courses', to: '/app/courses', icon: 'BookOpen', roles: ['admin', 'teacher'] },
   { label: 'Attendance', to: '/app/attendance', icon: 'CalendarCheck' },
   { label: 'Exams', to: '/app/exams', icon: 'FileText' },
   { label: 'Results', to: '/app/results', icon: 'Award' },
+  { label: 'Enquiries', to: '/app/enquiries', icon: 'MessagesSquare', roles: ['admin'] },
   { label: 'Profile', to: '/app/profile', icon: 'User' },
   { label: 'Settings', to: '/app/settings', icon: 'Settings' },
 ];
@@ -48,7 +57,7 @@ export function ErpLayout() {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {nav.map((n) => {
+          {nav.filter((n) => !n.roles || (user ? n.roles.includes(user.role) : false)).map((n) => {
             const active = loc.pathname === n.to;
             return (
               <Link

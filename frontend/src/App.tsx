@@ -3,7 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastHost } from './components/ui/Toast';
 import { SiteLayout } from './components/layout/SiteLayout';
-import { ProtectedRoute } from './routes/ProtectedRoute';
+import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoute';
 import { ErpLayout } from './components/erp/ErpLayout';
 
 import Home from './pages/site/Home';
@@ -28,6 +28,7 @@ import Exams from './pages/erp/Exams';
 import Results from './pages/erp/Results';
 import Profile from './pages/erp/Profile';
 import Settings from './pages/erp/Settings';
+import Enquiries from './pages/erp/Enquiries';
 
 import ChangePassword from './pages/auth/ChangePassword';
 
@@ -67,17 +68,17 @@ const router = createBrowserRouter([
           { index: true, element: <Dashboard /> },
 
           // Students
-          { path: 'students', element: <Students /> },
-          { path: 'students/new', element: <AddStudent /> }, // ✅ NEW
+          { path: 'students', element: <RoleRoute roles={['admin']}><Students /></RoleRoute> },
+          { path: 'students/new', element: <RoleRoute roles={['admin']}><AddStudent /></RoleRoute> }, // ✅ NEW
 
           // Teachers
-          { path: 'teachers', element: <Teachers /> },
+          { path: 'teachers', element: <RoleRoute roles={['admin']}><Teachers /></RoleRoute> },
 
           // Departments
-          { path: 'departments', element: <Departments /> },
+          { path: 'departments', element: <RoleRoute roles={['admin', 'teacher']}><Departments /></RoleRoute> },
 
           // Courses
-          { path: 'courses', element: <Courses /> },
+          { path: 'courses', element: <RoleRoute roles={['admin', 'teacher']}><Courses /></RoleRoute> },
 
           // Attendance
           { path: 'attendance', element: <Attendance /> },
@@ -87,6 +88,9 @@ const router = createBrowserRouter([
 
           // Results
           { path: 'results', element: <Results /> },
+
+          // Website enquiries
+          { path: 'enquiries', element: <RoleRoute roles={['admin']}><Enquiries /></RoleRoute> },
 
           // Profile
           { path: 'profile', element: <Profile /> },

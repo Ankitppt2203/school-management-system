@@ -15,153 +15,183 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Service
+@SuppressWarnings("null")
 public class AttendanceService {
 
-    private final AttendanceRepository attendanceRepository;
-    private final StudentRepository studentRepository;
+        private final AttendanceRepository attendanceRepository;
+        private final StudentRepository studentRepository;
 
-    public AttendanceService(
-            AttendanceRepository attendanceRepository,
-            StudentRepository studentRepository) {
+        public AttendanceService(
+                        AttendanceRepository attendanceRepository,
+                        StudentRepository studentRepository) {
 
-        this.attendanceRepository = attendanceRepository;
-        this.studentRepository = studentRepository;
-    }
+                this.attendanceRepository = attendanceRepository;
+                this.studentRepository = studentRepository;
+        }
 
-    // Create Attendance
-    public AttendanceDTO saveAttendance(
-            AttendanceDTO attendanceDTO) {
+        // Create Attendance
+        public AttendanceDTO saveAttendance(
+                        AttendanceDTO attendanceDTO) {
 
-        Student student =
-                studentRepository.findById(
-                                attendanceDTO.getStudentId())
-                        .orElseThrow(() ->
-                                new StudentNotFoundException(
-                                        "Student not found"));
+                Long studentId = Objects.requireNonNull(attendanceDTO.getStudentId(), "Student id is required");
+                LocalDate attendanceDate = Objects.requireNonNull(attendanceDTO.getDate(),
+                                "Attendance date is required");
 
-        Attendance attendance = new Attendance();
+                Student student = studentRepository.findById(
+                                studentId)
+                                .orElseThrow(() -> new StudentNotFoundException(
+                                                "Student not found"));
 
-        attendance.setDate(attendanceDTO.getDate());
-        attendance.setStatus(attendanceDTO.getStatus());
-        attendance.setStudent(student);
+                Attendance attendance = attendanceRepository
+                                .findByStudentIdAndDate(studentId, attendanceDate)
+                                .stream()
+                                .findFirst()
+                                .orElseGet(Attendance::new);
 
-        Attendance savedAttendance =
-                attendanceRepository.save(attendance);
+                attendance.setDate(attendanceDate);
+                attendance.setStatus(attendanceDTO.getStatus());
+                attendance.setStudent(student);
 
-        return new AttendanceDTO(
-                savedAttendance.getDate(),
-                savedAttendance.getStatus(),
-                savedAttendance.getStudent().getId());
-    }
+                Attendance savedAttendance = attendanceRepository.save(attendance);
 
-    // Get All Attendance
-    @Transactional(readOnly = true)
-    public List<AttendanceResponseDTO> getAllAttendance() {
-        return attendanceRepository.findAll().stream().map(this::toResponse).toList();
-    }
+                return new AttendanceDTO(
+                                savedAttendance.getDate(),
+                                savedAttendance.getStatus(),
+                                savedAttendance.getStudent().getId());
+        }
 
-    // Get Attendance By Id
-    @Transactional(readOnly = true)
-    public AttendanceResponseDTO getAttendanceById(
-            Long id) {
-        return toResponse(findAttendance(id));
-    }
+        // Get All Attendance
+        @Transactional(readOnly = true)
+        public List<AttendanceResponseDTO> getAllAttendance() {
+                return attendanceRepository.findAll().stream().map(this::toResponse).toList();
+        }
 
-    // Update Attendance
-    public AttendanceDTO updateAttendance(
-            Long id,
-            AttendanceDTO attendanceDTO) {
+        // Get Attendance By Id
+        @Transactional(readOnly = true)
+        public AttendanceResponseDTO getAttendanceById(
+                        Long id) {
+                return toResponse(findAttendance(id));
+        }
 
-        Attendance attendance =
-                attendanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new AttendanceNotFoundException(
-                                        "Attendance not found"));
+        // Update Attendance
+        public AttendanceDTO updateAttendance(
+                        Long id,
+                        AttendanceDTO attendanceDTO) {
 
-        Student student =
-                studentRepository.findById(
-                                attendanceDTO.getStudentId())
-                        .orElseThrow(() ->
-                                new StudentNotFoundException(
-                                        "Student not found"));
+                Long attendanceId = Objects.requireNonNull(id, "Attendance id is required");
+                Long studentId = Objects.requireNonNull(attendanceDTO.getStudentId(), "Student id is required");
+                LocalDate attendanceDate = Objects.requireNonNull(attendanceDTO.getDate(),
+                                "Attendance date is required");
 
-        attendance.setDate(attendanceDTO.getDate());
-        attendance.setStatus(attendanceDTO.getStatus());
-        attendance.setStudent(student);
+                Attendance attendance = attendanceRepository.findById(attendanceId)
+                                .orElseThrow(() -> new AttendanceNotFoundException(
+                                                "Attendance not found"));
 
-        Attendance updatedAttendance =
-                attendanceRepository.save(attendance);
+                Student student = studentRepository.findById(
+                                studentId)
+                                .orElseThrow(() -> new StudentNotFoundException(
+                                                "Student not found"));
 
-        return new AttendanceDTO(
-                updatedAttendance.getDate(),
-                updatedAttendance.getStatus(),
-                updatedAttendance.getStudent().getId());
-    }
+                Attendance targetAttendance = attendanceRepository.findByStudentIdAndDate(studentId, attendanceDate)
+                                .stream()
+                                .findFirst()
+                                .orElse(attendance);
 
-    // Delete Attendance
-    public void deleteAttendance(Long id) {
+                targetAttendance.setDate(attendanceDate);
+                targetAttendance.setStatus(attendanceDTO.getStatus());
+                targetAttendance.setStudent(student);
 
-        Attendance attendance =
-                attendanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new AttendanceNotFoundException(
-                                        "Attendance not found"));
+                Attendance updatedAttendance = attendanceRepository.save(targetAttendance);
 
-        attendanceRepository.delete(attendance);
-    }
+                if (!updatedAttendance.getId().equals(attendanceId)) {
+                        attendanceRepository.delete(attendance);
+                }
 
-    // Get Attendance By Student
-    @Transactional(readOnly = true)
-    public List<AttendanceResponseDTO> getAttendanceByStudent(
-            Long studentId) {
-        return attendanceRepository.findByStudentId(studentId).stream().map(this::toResponse).toList();
-    }
+                return new AttendanceDTO(
+                                updatedAttendance.getDate(),
+                                updatedAttendance.getStatus(),
+                                updatedAttendance.getStudent().getId());
+        }
 
-    // Get Attendance By Date
-    @Transactional(readOnly = true)
-    public List<AttendanceResponseDTO> getAttendanceByDate(
-            LocalDate date) {
-        return attendanceRepository.findByDate(date).stream().map(this::toResponse).toList();
-    }
+        // Delete Attendance
+        public void deleteAttendance(Long id) {
 
-    // Get Attendance By Status
-    @Transactional(readOnly = true)
-    public List<AttendanceResponseDTO> getAttendanceByStatus(
-            AttendanceStatus status) {
-        return attendanceRepository.findByStatus(status).stream().map(this::toResponse).toList();
-    }
+                Attendance attendance = attendanceRepository
+                                .findById(Objects.requireNonNull(id, "Attendance id is required"))
+                                .orElseThrow(() -> new AttendanceNotFoundException(
+                                                "Attendance not found"));
 
-    // Get Attendance By Student and Date
-    @Transactional(readOnly = true)
-    public List<AttendanceResponseDTO> getAttendanceByStudentAndDate(
-            Long studentId,
-            LocalDate date) {
-        return attendanceRepository.findByStudentIdAndDate(studentId, date).stream().map(this::toResponse).toList();
-    }
+                attendanceRepository.delete(Objects.requireNonNull(attendance));
+        }
 
-    /** Supplies all students belonging to a selected department for attendance marking. */
-    @Transactional(readOnly = true)
-    public List<AttendanceStudentDTO> getStudentsByDepartment(Long departmentId) {
-        return studentRepository.findAll().stream()
-                .filter(student -> student.getDepartment() != null && departmentId.equals(student.getDepartment().getId()))
-                .map(student -> new AttendanceStudentDTO(
-                        student.getId(), student.getFirstName(), student.getLastName(), student.getRollNumber(),
-                        student.getUsername(), student.getDepartment().getId(), student.getDepartment().getName()))
-                .toList();
-    }
+        // Get Attendance By Student
+        @Transactional(readOnly = true)
+        public List<AttendanceResponseDTO> getAttendanceByStudent(
+                        Long studentId) {
+                return attendanceRepository.findByStudentId(Objects.requireNonNull(studentId, "Student id is required"))
+                                .stream().map(this::toResponse).toList();
+        }
 
-    private Attendance findAttendance(Long id) {
-        return attendanceRepository.findById(id)
-                .orElseThrow(() -> new AttendanceNotFoundException("Attendance not found"));
-    }
+        // Get Attendance By Date
+        @Transactional(readOnly = true)
+        public List<AttendanceResponseDTO> getAttendanceByDate(
+                        LocalDate date) {
+                return attendanceRepository.findByDate(Objects.requireNonNull(date, "Attendance date is required"))
+                                .stream().map(this::toResponse).toList();
+        }
 
-    private AttendanceResponseDTO toResponse(Attendance attendance) {
-        Student student = attendance.getStudent();
-        return new AttendanceResponseDTO(
-                attendance.getId(), attendance.getDate(), attendance.getStatus(), student.getId(),
-                student.getFirstName(), student.getLastName(), student.getRollNumber(), student.getUsername(),
-                student.getDepartment().getId(), student.getDepartment().getName());
-    }
+        // Get Attendance By Status
+        @Transactional(readOnly = true)
+        public List<AttendanceResponseDTO> getAttendanceByStatus(
+                        AttendanceStatus status) {
+                return attendanceRepository
+                                .findByStatus(Objects.requireNonNull(status, "Attendance status is required")).stream()
+                                .map(this::toResponse).toList();
+        }
+
+        // Get Attendance By Student and Date
+        @Transactional(readOnly = true)
+        public List<AttendanceResponseDTO> getAttendanceByStudentAndDate(
+                        Long studentId,
+                        LocalDate date) {
+                return attendanceRepository
+                                .findByStudentIdAndDate(Objects.requireNonNull(studentId, "Student id is required"),
+                                                Objects.requireNonNull(date, "Attendance date is required"))
+                                .stream().map(this::toResponse).toList();
+        }
+
+        /**
+         * Supplies all students belonging to a selected department for attendance
+         * marking.
+         */
+        @Transactional(readOnly = true)
+        public List<AttendanceStudentDTO> getStudentsByDepartment(Long departmentId) {
+                Long targetDepartmentId = Objects.requireNonNull(departmentId, "Department id is required");
+                return studentRepository.findAll().stream()
+                                .filter(student -> student.getDepartment() != null
+                                                && targetDepartmentId.equals(student.getDepartment().getId()))
+                                .map(student -> new AttendanceStudentDTO(
+                                                student.getId(), student.getFirstName(), student.getLastName(),
+                                                student.getRollNumber(),
+                                                student.getUsername(), student.getDepartment().getId(),
+                                                student.getDepartment().getName()))
+                                .toList();
+        }
+
+        private Attendance findAttendance(Long id) {
+                return attendanceRepository.findById(Objects.requireNonNull(id, "Attendance id is required"))
+                                .orElseThrow(() -> new AttendanceNotFoundException("Attendance not found"));
+        }
+
+        private AttendanceResponseDTO toResponse(Attendance attendance) {
+                Student student = attendance.getStudent();
+                return new AttendanceResponseDTO(
+                                attendance.getId(), attendance.getDate(), attendance.getStatus(), student.getId(),
+                                student.getFirstName(), student.getLastName(), student.getRollNumber(),
+                                student.getUsername(),
+                                student.getDepartment().getId(), student.getDepartment().getName());
+        }
 }

@@ -179,6 +179,14 @@ export default function Teachers() {
   ];
 
   const selectedDepartmentLabel = (departmentId: string) => departments.find((department) => department.id.toString() === departmentId)?.name ?? 'Select a department';
+  const selectProfilePhoto = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast('Please select an image file', 'error'); return; }
+    if (file.size > 300 * 1024) { toast('Profile photo must be 300 KB or smaller', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setForm((current) => ({ ...current, profileDetails: { ...current.profileDetails, profilePhotoUrl: String(reader.result) } }));
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div>
@@ -244,6 +252,7 @@ export default function Teachers() {
             </div>
           </>}
           <TeacherProfileFields details={form.profileDetails} onChange={(key, value) => setForm({ ...form, profileDetails: { ...form.profileDetails, [key]: value } })} />
+          <div className="sm:col-span-2"><label className="label">Profile Photo</label><input type="file" accept="image/*" onChange={(event) => selectProfilePhoto(event.target.files?.[0])} className="input" />{form.profileDetails.profilePhotoUrl && <img src={form.profileDetails.profilePhotoUrl} alt="Profile preview" className="mt-3 h-20 w-20 rounded-xl object-cover" />}</div>
           <div className="sm:col-span-2 rounded-xl bg-ink-50 p-3 text-sm text-ink-500 dark:bg-ink-800/50 dark:text-ink-300">
             Selected department: {selectedDepartmentLabel(form.departmentId)}
           </div>
@@ -257,6 +266,7 @@ export default function Teachers() {
       <Modal open={!!modal && modal.mode === 'view'} onClose={() => setModal(null)} title="Teacher Profile">
         {modal?.data && (
           <div className="text-center">
+            <img src={modal.data.profileDetails?.profilePhotoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(modal.data.name)}`} alt="Teacher profile" className="mx-auto h-24 w-24 rounded-2xl object-cover" />
             <h3 className="mt-4 font-display text-xl font-bold text-ink-900 dark:text-white">{modal.data.name}</h3>
             <p className="text-sm text-brand-600">{modal.data.subject} • {modal.data.departmentName}</p>
             <div className="grid grid-cols-2 gap-3 mt-6 text-left">

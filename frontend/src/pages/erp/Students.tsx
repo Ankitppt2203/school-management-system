@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
-import { StudentRow, StudentPageResponse } from "../../types/student";
+import { StudentRow, StudentPageResponse, DepartmentOption } from "../../types/student";
 import StudentForm from "../../components/students/StudentForm";
+import { studentApi } from "../../services";
 
 const Students = () => {
   // ==========================
@@ -15,6 +16,8 @@ const Students = () => {
   const [size] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<StudentRow | null>(null);
   const [viewingStudent, setViewingStudent] = useState<StudentRow | null>(null);
@@ -24,8 +27,21 @@ const Students = () => {
   // ==========================
 
   useEffect(() => {
-    loadStudents();
-  }, [page]);
+    void loadStudents();
+  }, [page, departmentId]);
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const response = await studentApi.listDepartments();
+        setDepartments(response);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadDepartments();
+  }, []);
 
   const loadStudents = async () => {
     try {
@@ -35,6 +51,7 @@ const Students = () => {
         params: {
           page,
           size,
+          departmentId: departmentId ? Number(departmentId) : undefined,
           // New admissions are kept at the top so a saved student is visible immediately.
           sortBy: "admissionDate",
           direction: "desc",
@@ -62,6 +79,14 @@ const Students = () => {
       await loadStudents();
     }
   };
+
+  const filteredStudents = students.filter((student) => {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+    return [student.admissionNumber, student.rollNumber, student.fullName, student.departmentName, student.status]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+  });
 
   const removeStudent = async (student: StudentRow) => {
     if (!window.confirm(`Delete ${student.fullName}? This cannot be undone.`)) return;
@@ -109,21 +134,52 @@ const Students = () => {
 
       <div className="rounded-lg bg-white p-4 shadow dark:bg-ink-900 dark:ring-1 dark:ring-ink-800">
 
-        <div className="relative w-full md:w-96">
+        <div className="grid gap-4 md:grid-cols-2">
 
-          <Search
-            size={18}
-            className="absolute left-3 top-3 text-gray-400"
-          />
+          <div className="relative w-full">
 
-          <input
-            type="text"
-            placeholder="Search Student..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-ink-200 bg-white py-2 pl-10 pr-4 text-ink-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:placeholder:text-ink-400"
-          />
+            <Search
+              size={18}
+              className="absolute left-3 top-3 text-gray-400"
+            />
 
+            <input
+              type="text"
+              placeholder="Search Student..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-ink-200 bg-white py-2 pl-10 pr-4 text-ink-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:placeholder:text-ink-400"
+            />
+
+          </div>
+
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPage(0);
+              setDepartmentId("");
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${departmentId === "" ? "bg-blue-600 text-white shadow" : "border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:hover:bg-ink-700"}`}
+          >
+            All Students
+          </button>
+
+          {departments.map((department) => (
+            <button
+              key={department.id}
+              type="button"
+              onClick={() => {
+                setPage(0);
+                setDepartmentId(String(department.id));
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${departmentId === String(department.id) ? "bg-blue-600 text-white shadow" : "border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:hover:bg-ink-700"}`}
+            >
+              {department.name}
+            </button>
+          ))}
         </div>
 
       </div>
@@ -159,7 +215,7 @@ const Students = () => {
 
             <tbody>
 
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
 
                 <tr
                   key={student.id}
@@ -214,7 +270,7 @@ const Students = () => {
 
               ))}
 
-              {students.length === 0 && (
+              {filteredStudents.length === 0 && (
 
                 <tr>
 

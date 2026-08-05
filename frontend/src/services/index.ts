@@ -28,9 +28,9 @@ function crud<T extends { id: string }>(endpoint: string) {
 }
 
 export const studentApi = {
-  listPage: async (page: number, size: number): Promise<StudentPageResponse> => {
+  listPage: async (page: number, size: number, departmentId?: number | string): Promise<StudentPageResponse> => {
   const response = await api.get('/students', {
-    params: { page, size },
+    params: { page, size, departmentId: departmentId || undefined },
   });
 
   const data = response.data as StudentPageResponse;
@@ -75,6 +75,12 @@ export const studentApi = {
       id: Number(department.id),
       name: department.name,
     }));
+  },
+
+  getNextAdmissionNumber: async (): Promise<string> => {
+    const response = await api.get('/students/next-admission-number');
+
+    return String(response.data);
   },
 };
 
@@ -258,6 +264,30 @@ export const examApi = crud<Exam>('exams');
 
 export const resultApi = crud<Result>('results');
 
+export interface EnquiryPayload {
+  name: string;
+  email: string;
+  phone: string;
+  interestedIn?: string;
+  message: string;
+}
+
+export interface EnquiryRecord extends EnquiryPayload {
+  id: number;
+  submittedAt: string;
+}
+
+export const enquiryApi = {
+  submit: async (data: EnquiryPayload): Promise<EnquiryRecord> => {
+    const response = await api.post<EnquiryRecord>('/enquiries', data);
+    return response.data;
+  },
+  listAll: async (): Promise<EnquiryRecord[]> => {
+    const response = await api.get<EnquiryRecord[]>('/enquiries');
+    return response.data;
+  },
+};
+
 // ===============================
 // Attendance
 // ===============================
@@ -327,6 +357,13 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+export interface AccountProfile {
+  username: string;
+  name: string;
+  profilePhotoUrl?: string | null;
+  role: string;
+}
+
 export const authApi = {
   login: async (
     username: string,
@@ -345,5 +382,9 @@ export const authApi = {
   },
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
     await api.post("/auth/change-password", data);
+  },
+  me: async (): Promise<AccountProfile> => {
+    const response = await api.get<AccountProfile>("/auth/me");
+    return response.data;
   },
 };

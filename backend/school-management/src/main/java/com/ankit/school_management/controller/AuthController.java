@@ -118,4 +118,9 @@ public ResponseEntity<?> changePassword(
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        return ResponseEntity.ok(authService.getAccountProfile(authentication.getName()));
+    }
 }

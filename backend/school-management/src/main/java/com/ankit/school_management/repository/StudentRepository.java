@@ -4,50 +4,49 @@ import com.ankit.school_management.entity.Student;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 import java.util.List;
 
-public interface StudentRepository extends JpaRepository<Student, Long> {
+public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpecificationExecutor<Student> {
 
-    // ===============================
-    // Unique Checks
-    // ===============================
+        // ===============================
+        // Unique Checks
+        // ===============================
 
-    boolean existsByAdmissionNumber(String admissionNumber);
+        boolean existsByAdmissionNumber(String admissionNumber);
 
-    boolean existsByRollNumber(String rollNumber);
+        Optional<Student> findByAdmissionNumber(String admissionNumber);
 
-    Optional<Student> findByAdmissionNumber(String admissionNumber);
+        Optional<Student> findByUsername(String username);
 
-    // ===============================
-    // Search
-    // ===============================
+        List<Student> findByAdmissionNumberStartingWithIgnoreCaseOrderByIdDesc(String admissionNumberPrefix);
 
-    Page<Student> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
-            String firstName,
-            String lastName,
-            Pageable pageable
-    );
+        // ===============================
+        // Search
+        // ===============================
 
-    // ===============================
-    // Filters
-    // ===============================
+        Page<Student> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+                        String firstName,
+                        String lastName,
+                        Pageable pageable);
 
-    Page<Student> findByAcademicSession(
-            String academicSession,
-            Pageable pageable
-    );
+        // ===============================
+        // Filters
+        // ===============================
 
-    Page<Student> findByStatus(
-            String status,
-            Pageable pageable
-    );
+        Page<Student> findByAcademicSession(
+                        String academicSession,
+                        Pageable pageable);
 
-    Page<Student> findByDepartmentId(
-            Long departmentId,
-            Pageable pageable
-    );
+        Page<Student> findByStatus(
+                        String status,
+                        Pageable pageable);
 
-    List<Student> findByCoursesId(Long courseId);
+        Page<Student> findByDepartmentId(
+                        Long departmentId,
+                        Pageable pageable);
+
+        List<Student> findByCoursesId(Long courseId);
 }

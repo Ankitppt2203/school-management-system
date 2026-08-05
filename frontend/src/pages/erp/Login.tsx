@@ -152,11 +152,10 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center text-sm">
               <label className="flex items-center gap-2 text-ink-600 dark:text-ink-300">
                 <input type="checkbox" className="rounded border-ink-300 text-brand-600 focus:ring-brand-500" /> Remember me
               </label>
-              <a href="#" className="text-brand-600 dark:text-brand-400 hover:underline">Forgot password?</a>
             </div>
 
             <AnimatePresence>

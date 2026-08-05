@@ -12,12 +12,9 @@ import java.util.Map;
 import java.util.HashMap;
 
 @Entity
-@Table(
-        name = "students",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_student_admission_number", columnNames = "admission_number")
-        }
-)
+@Table(name = "students", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_student_admission_number", columnNames = "admission_number")
+})
 public class Student {
 
     @Id
@@ -32,7 +29,7 @@ public class Student {
     @Column(name = "admission_number", nullable = false, unique = true)
     private String admissionNumber;
 
-    @Column(name = "roll_number", unique = true)
+    @Column(name = "roll_number")
     private String rollNumber;
 
     @NotBlank(message = "First name is required")
@@ -70,14 +67,16 @@ public class Student {
     @Column(name = "student_status")
     private String status = "ACTIVE";
 
-    @Column(name = "username", unique = true)
+    @Column(name = "username")
     private String username;
 
-    /** Additional admission, parent, contact, medical, transport and hostel details. */
+    /**
+     * Additional admission, parent, contact, medical, transport and hostel details.
+     */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "student_admission_details", joinColumns = @JoinColumn(name = "student_id"))
     @MapKeyColumn(name = "detail_key")
-    @Column(name = "detail_value", length = 2000)
+    @Column(name = "detail_value", length = 500000)
     private Map<String, String> admissionDetails = new HashMap<>();
 
     // ===============================
@@ -91,27 +90,15 @@ public class Student {
 
     @JsonManagedReference("student-course")
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "student_course",
-            joinColumns = @JoinColumn(name = "student_id"),
-            inverseJoinColumns = @JoinColumn(name = "course_id")
-    )
+    @JoinTable(name = "student_course", joinColumns = @JoinColumn(name = "student_id"), inverseJoinColumns = @JoinColumn(name = "course_id"))
     private List<Course> courses = new ArrayList<>();
 
     @JsonManagedReference("student-attendance")
-    @OneToMany(
-            mappedBy = "student",
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
-    )
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Attendance> attendanceRecords;
 
     @JsonManagedReference("student-result")
-    @OneToMany(
-            mappedBy = "student",
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
-    )
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Result> results;
 
     // ===============================
@@ -208,10 +195,22 @@ public class Student {
     public void setStatus(String status) {
         this.status = status;
     }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public Map<String, String> getAdmissionDetails() { return admissionDetails; }
-    public void setAdmissionDetails(Map<String, String> admissionDetails) { this.admissionDetails = admissionDetails; }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public Map<String, String> getAdmissionDetails() {
+        return admissionDetails;
+    }
+
+    public void setAdmissionDetails(Map<String, String> admissionDetails) {
+        this.admissionDetails = admissionDetails;
+    }
 
     public Department getDepartment() {
         return department;

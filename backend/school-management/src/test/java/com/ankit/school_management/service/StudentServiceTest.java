@@ -28,21 +28,29 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class StudentServiceTest {
-    @Mock private StudentRepository studentRepository;
-    @Mock private DepartmentRepository departmentRepository;
-    @Mock private CourseRepository courseRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @InjectMocks private StudentService studentService;
+    @Mock
+    private StudentRepository studentRepository;
+    @Mock
+    private DepartmentRepository departmentRepository;
+    @Mock
+    private CourseRepository courseRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @InjectMocks
+    private StudentService studentService;
 
     @Test
     void savesStudentUsingRedesignedRequestAndReturnsFullName() {
         Department department = department(1L, "Computer Science");
-        StudentRequestDTO request = request("ADM-001", "R-1", 1L);
+        StudentRequestDTO request = request("MANUAL-999", "R-1", 1L);
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
-        when(studentRepository.existsByAdmissionNumber("ADM-001")).thenReturn(false);
-        when(studentRepository.existsByRollNumber("R-1")).thenReturn(false);
+        when(studentRepository.findByAdmissionNumberStartingWithIgnoreCaseOrderByIdDesc("GPS"))
+                .thenReturn(java.util.List.of());
+        when(studentRepository.existsByAdmissionNumber("GPS01")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         StudentResponseDTO response = studentService.saveStudent(request);
@@ -53,14 +61,32 @@ class StudentServiceTest {
         verify(studentRepository).save(studentCaptor.capture());
         assertEquals("Ankit", studentCaptor.getValue().getFirstName());
         assertEquals("Kumar", studentCaptor.getValue().getLastName());
+        assertEquals("GPS01", studentCaptor.getValue().getAdmissionNumber());
     }
 
     @Test
     void rejectsDuplicateAdmissionNumber() {
+        Department department = department(1L, "Computer Science");
+        Student student = new Student();
+        student.setAdmissionNumber("ADM-000");
+        student.setFirstName("Ankit");
+        student.setLastName("Kumar");
+        student.setAcademicSession("2025-26");
+        student.setAdmissionDate(LocalDate.of(2025, 4, 1));
+        student.setDepartment(department);
         StudentRequestDTO request = request("ADM-001", "R-1", 1L);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(studentRepository.existsByAdmissionNumber("ADM-001")).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> studentService.saveStudent(request));
+        assertThrows(DuplicateResourceException.class, () -> studentService.updateStudent(1L, request));
+    }
+
+    @Test
+    void generatesNextAdmissionNumberFromExistingSequence() {
+        when(studentRepository.findByAdmissionNumberStartingWithIgnoreCaseOrderByIdDesc("GPS")).thenReturn(
+                java.util.List.of(student("GPS07"), student("GPS02")));
+
+        assertEquals("GPS08", studentService.getNextAdmissionNumber());
     }
 
     @Test
@@ -89,7 +115,6 @@ class StudentServiceTest {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
         when(studentRepository.existsByAdmissionNumber("ADM-002")).thenReturn(false);
-        when(studentRepository.existsByRollNumber("R-2")).thenReturn(false);
         when(studentRepository.save(student)).thenReturn(student);
 
         StudentResponseDTO response = studentService.updateStudent(1L, request);
@@ -108,5 +133,11 @@ class StudentServiceTest {
         department.setId(id);
         department.setName(name);
         return department;
+    }
+
+    private Student student(String admissionNumber) {
+        Student student = new Student();
+        student.setAdmissionNumber(admissionNumber);
+        return student;
     }
 }

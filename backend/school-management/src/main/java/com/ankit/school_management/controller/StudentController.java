@@ -48,14 +48,27 @@ public class StudentController {
 
             @RequestParam(defaultValue = "firstName") String sortBy,
 
-            @RequestParam(defaultValue = "asc") String direction) {
+            @RequestParam(defaultValue = "asc") String direction,
+
+            @RequestParam(required = false) Long departmentId) {
 
         return ResponseEntity.ok(
                 studentService.getStudents(
                         page,
                         size,
                         sortBy,
-                        direction));
+                        direction,
+                        departmentId));
+    }
+
+    // ==========================
+    // NEXT ADMISSION NUMBER
+    // ==========================
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/next-admission-number")
+    public ResponseEntity<String> getNextAdmissionNumber() {
+        return ResponseEntity.ok(studentService.getNextAdmissionNumber());
     }
 
     // ==========================

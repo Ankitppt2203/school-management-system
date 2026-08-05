@@ -1,16 +1,58 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Icon } from '../../components/ui/Icon';
 import { stagger, fadeUp } from '../../components/ui/Motion';
 import { dashboardStats, enrollmentTrend, attendanceWeek, departmentDistribution, recentActivities, notifications } from '../../data/mock';
 import { Bell, TrendingUp } from 'lucide-react';
+import { attendanceApi, courseApi, departmentApi, examApi, resultApi, studentApi, teacherApi } from '../../services';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState(dashboardStats);
+
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        const [students, teachers, courses, departments, attendance, exams, results] = await Promise.all([
+          studentApi.listPage(0, 1),
+          teacherApi.listAll(),
+          courseApi.listAll(),
+          departmentApi.listAll(),
+          attendanceApi.listAll(),
+          examApi.list(),
+          resultApi.list(),
+        ]);
+
+        const presentAttendance = attendance.filter((record) => record.status === 'PRESENT').length;
+        const attendancePercentage = attendance.length ? Math.round((presentAttendance / attendance.length) * 100) : 0;
+        const today = new Date().toISOString().slice(0, 10);
+        const upcomingExams = exams.filter((exam) => exam.date >= today && exam.status !== 'Completed').length;
+
+        setStats((current) => current.map((stat) => {
+          const values: Record<string, number> = {
+            'Total Students': students.totalElements,
+            'Total Teachers': teachers.length,
+            'Total Courses': courses.length,
+            Departments: departments.length,
+            'Attendance %': attendancePercentage,
+            'Upcoming Exams': upcomingExams,
+            'Results Published': results.length,
+          };
+          return stat.label in values ? { ...stat, value: values[stat.label] } : stat;
+        }));
+      } catch {
+        // Keep the current display if a role does not have access to one of the dashboard data sources.
+      }
+    };
+
+    void loadDashboardStats();
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Stat cards */}
       <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {dashboardStats.map((s) => (
+        {stats.map((s) => (
           <motion.div key={s.label} variants={fadeUp} whileHover={{ y: -4 }} className="card p-5">
             <div className="flex items-center justify-between">
               <span className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${s.color} text-white shadow-card`}>

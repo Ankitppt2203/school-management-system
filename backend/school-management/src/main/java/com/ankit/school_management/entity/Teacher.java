@@ -29,7 +29,7 @@ public class Teacher {
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "teacher_profile_details", joinColumns = @JoinColumn(name = "teacher_id"))
     @MapKeyColumn(name = "detail_key")
-    @Column(name = "detail_value", length = 2000)
+    @Column(name = "detail_value", length = 500000)
     private Map<String, String> profileDetails = new HashMap<>();
 
     @JsonBackReference("department-teacher")
